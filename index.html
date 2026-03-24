@@ -1,0 +1,3045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plant IoT Dashboard | Imperial College London</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="data/analysis.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<style>
+:root{--bg-page:#0a0b10;--bg-section:#0f1117;--bg-card:#161822;--bg-card-alt:#1c1f2e;--border:#252840;--text-primary:#eeeef2;--text-secondary:#8888a4;--text-muted:#55556e;--soil:#4fc3f7;--temp:#ef5350;--hum:#66bb6a;--light:#ffd54f;--vpd:#ce93d8;--pump:#ff7043;--rate:#4fc3f7;--bio:#81c784;--phys:#64b5f6;--grid:#1a1d30}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-primary);line-height:1.5}
+.container{max-width:1280px;margin:0 auto;padding:0 24px}
+.section{padding:72px 0;border-bottom:1px solid #1e2138}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px}
+.card-alt{background:var(--bg-card-alt)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.mt20{margin-top:20px}.mt32{margin-top:32px}.mt48{margin-top:48px}
+.section-eyebrow{font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.section-title{font-size:30px;font-weight:700;margin-bottom:6px}
+.section-question{font-size:17px;color:var(--text-secondary);font-style:italic;margin-bottom:36px}
+.chart-label{font-size:16px;font-weight:700;color:#dde3ef;margin-bottom:4px;line-height:1.3}
+.chart-title{font-size:12.5px;font-weight:400;color:var(--text-muted);margin-bottom:2px}
+.chart-subtitle{font-size:11.5px;color:#3d4659;margin-bottom:16px}
+.big-number{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1}
+.badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:12px;font-weight:600}
+.badge-blue{background:rgba(79,195,247,.15);color:#4fc3f7}
+.badge-green{background:rgba(129,199,132,.15);color:#81c784}
+.badge-yellow{background:rgba(255,213,79,.15);color:#ffd54f}
+.badge-orange{background:rgba(255,112,67,.15);color:#ff7043}
+.badge-purple{background:rgba(206,147,216,.15);color:#ce93d8}
+.badge-red{background:rgba(239,83,80,.15);color:#ef5350}
+nav{position:sticky;top:0;z-index:100;background:rgba(10,11,16,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #252840}
+.nav-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:4px;height:52px;padding:0 24px;overflow-x:auto}
+.nav-brand{font-weight:700;font-size:15px;white-space:nowrap;margin-right:16px;color:var(--text-primary)}
+.nav-sep{color:var(--border);margin:0 4px}
+.nav-link{font-size:13px;color:var(--text-secondary);text-decoration:none;padding:6px 12px;border-radius:6px;white-space:nowrap;transition:color .2s,background .2s;cursor:pointer}
+.nav-link:hover{color:var(--text-primary);background:rgba(255,255,255,.05)}
+.nav-link.active{color:var(--soil);background:rgba(79,195,247,.1)}
+.range-btns{display:flex;gap:8px;margin-bottom:12px}
+.range-btn{background:var(--bg-card-alt);border:1px solid var(--border);color:var(--text-secondary);padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.range-btn.active{background:var(--soil);color:var(--bg-page);border-color:var(--soil)}
+.kpi-card{text-align:center;padding:20px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px}
+.kpi-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-top:8px}
+.kpi-unit{font-size:14px;color:var(--text-secondary);font-weight:500;margin-left:2px}
+.collapsible{border-top:1px solid var(--border);margin-top:16px}
+.collapsible-btn{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;color:var(--text-secondary);font-size:13px;padding:12px 0;cursor:pointer;font-family:inherit}
+.collapsible-btn:hover{color:var(--text-primary)}
+.collapsible-arrow{transition:transform .3s}
+.collapsible-btn.open .collapsible-arrow{transform:rotate(180deg)}
+.collapsible-content{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.collapsible-content.open{max-height:400px}
+.collapsible-body{padding-bottom:12px;font-size:13px;color:var(--text-secondary);line-height:1.8}
+.collapsible-body strong{color:var(--text-primary)}
+.transition-text{margin:48px 0 0;padding:24px;border-left:3px solid var(--soil);background:rgba(79,195,247,.04);border-radius:0 8px 8px 0;font-size:16px;color:var(--text-secondary);font-style:italic}
+.intro-text{font-size:16px;color:var(--text-secondary);line-height:1.8;margin-bottom:32px;max-width:820px}
+.intro-text em{color:var(--text-primary);font-style:normal}
+.hw-diagram{display:flex;flex-direction:column;align-items:center;gap:0;padding:16px 0}
+.hw-node{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:8px;padding:10px 20px;background:var(--bg-card-alt);color:var(--text-primary);font-weight:600;font-size:13px;white-space:nowrap}
+.hw-node.main{border-color:var(--soil);color:var(--soil);background:rgba(79,195,247,.08)}
+.hw-node.pump-node{border-color:var(--pump);color:var(--pump);background:rgba(255,112,67,.08)}
+.hw-vline{width:1px;height:20px;background:var(--border);margin:0 auto}
+.hw-hrow{display:flex;align-items:flex-start;justify-content:center;gap:40px}
+.hw-sensor{display:flex;flex-direction:column;align-items:center;gap:0}
+.hw-label{font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px;max-width:90px}
+.hw-hline-container{display:flex;align-items:center;justify-content:center;width:100%;margin:0}
+.hw-hline{height:1px;background:var(--border)}
+.lora-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:0}
+.lora-arrow{color:var(--text-muted);font-size:18px}
+.methodology-callout{background:rgba(79,195,247,.06);border:1px solid rgba(79,195,247,.2);border-radius:10px;padding:20px;text-align:center}
+.methodology-callout p{font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:8px}
+.methodology-callout p:last-child{margin-bottom:0}
+.methodology-callout strong{color:var(--text-primary)}
+.evidence-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.two-col h3{font-size:15px;font-weight:700;margin-bottom:12px}
+.two-col p,.two-col li{font-size:13px;color:var(--text-secondary);line-height:1.7}
+.two-col ul{list-style:none;padding:0}
+.two-col li{display:flex;gap:8px;margin-bottom:6px}
+.two-col li::before{content:'→';color:var(--text-muted);flex-shrink:0}
+.stat-pair{display:flex;align-items:center;gap:20px;margin-bottom:16px}
+.stat-bar-wrap{flex:1}
+.stat-bar-label{font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+.stat-bar-track{height:10px;background:var(--bg-card-alt);border-radius:5px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:5px}
+.stat-bar-value{font-size:14px;font-weight:600;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid rgba(37,40,64,.5)}
+.tr-test td{background:rgba(79,195,247,.04)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:480px;width:90%}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:22px;line-height:1;padding:0}
+.modal-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.modal-stat{background:var(--bg-card-alt);border-radius:8px;padding:12px}
+.modal-stat-label{font-size:11px;color:var(--text-muted);margin-bottom:4px}
+.modal-stat-value{font-size:17px;font-weight:700}
+.scenario-card{border-radius:12px;border:1px solid var(--border);padding:20px;background:var(--bg-card)}
+.scenario-icon{font-size:26px}
+.scenario-name{font-size:14px;font-weight:600;margin-top:4px}
+.scenario-days{font-size:38px;font-weight:800;letter-spacing:-1px;line-height:1;margin:12px 0 2px}
+.scenario-label{font-size:11px;color:var(--text-muted)}
+.scenario-meta{font-size:11px;color:var(--text-muted);margin:8px 0}
+.scenario-meta span{margin-right:10px}
+.flow-box{background:var(--bg-card-alt);border:1px solid var(--border);border-radius:10px;padding:16px}
+.flow-formula{font-family:'Courier New',monospace;font-size:12px;color:var(--soil);line-height:2}
+.vision-quote{font-size:18px;font-weight:600;line-height:1.7;padding:24px;border-left:3px solid var(--soil);background:rgba(79,195,247,.06);border-radius:0 8px 8px 0;margin-bottom:24px}
+.vision-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:start;margin-top:24px}
+.vision-vs{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--text-muted);padding-top:40px}
+.vision-col h3{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px}
+.vision-col li{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-secondary);margin-bottom:10px;list-style:none}
+.vision-col li .icon{width:20px;flex-shrink:0;text-align:center}
+.heatmap-outer{position:relative}
+.heatmap-legend{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:11px;color:var(--text-muted)}
+.heatmap-legend-bar{height:10px;width:180px;border-radius:4px;background:linear-gradient(to right,#0f1117,#4fc3f7,#ffd54f)}
+.section-divider{border:none;border-top:1px solid #1e2138;margin:0}
+
+/* ── Hero ── */
+.hero{padding:80px 0 72px;background:linear-gradient(160deg,#0a0b10 60%,rgba(79,195,247,0.06) 100%);border-bottom:1px solid #1e2138}
+.hero-eyebrow{font-size:12px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--soil);margin-bottom:18px}
+.hero-title{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1.05;margin-bottom:20px}
+.hero-title em{font-style:normal;color:var(--soil)}
+.hero-subtitle{font-size:18px;color:var(--text-secondary);max-width:680px;line-height:1.7;margin-bottom:36px}
+.hero-subtitle strong{color:var(--text-primary)}
+.hero-stats{display:flex;gap:40px;flex-wrap:wrap;margin-bottom:48px}
+.hero-stat-val{font-size:34px;font-weight:800;letter-spacing:-1px}
+.hero-stat-label{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.hero-callout{display:inline-flex;align-items:center;gap:12px;background:rgba(79,195,247,.08);border:1px solid rgba(79,195,247,.2);border-radius:10px;padding:14px 20px;font-size:14px;color:var(--text-secondary);max-width:740px;line-height:1.6}
+.hero-callout strong{color:var(--text-primary)}
+
+/* ── Journey connector ── */
+.journey-connector{margin:0;padding:40px 0 0;display:flex;align-items:stretch;gap:0}
+.journey-connector-line{width:2px;background:linear-gradient(to bottom,var(--soil),rgba(79,195,247,0));min-height:60px;flex-shrink:0;margin-left:20px}
+.journey-connector-body{padding:0 0 0 20px;padding-bottom:0}
+.journey-connector-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--soil);margin-bottom:4px}
+.journey-connector-text{font-size:15px;color:var(--text-secondary);line-height:1.7;font-style:italic;max-width:700px}
+.journey-connector-text strong{color:var(--text-primary);font-style:normal}
+
+/* ── Two-node hardware diagram ── */
+.hw2-wrap{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap}
+.hw2-node{flex:1;min-width:200px;max-width:280px;border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--bg-card-alt)}
+.hw2-node-title{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
+.hw2-lora{background:var(--bg-page);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;text-align:center;margin-bottom:12px}
+.hw2-sensors{display:flex;flex-direction:column;gap:8px}
+.hw2-sensor{display:flex;align-items:center;gap:10px;background:var(--bg-card);border-radius:6px;padding:8px 10px;font-size:12px}
+.hw2-sensor-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hw2-link{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 20px;flex-shrink:0}
+.hw2-link-wave{font-size:22px}
+.hw2-link-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);text-align:center}
+.hw2-link-line{width:60px;height:1px;background:linear-gradient(to right,rgba(79,195,247,0),rgba(79,195,247,0.6),rgba(79,195,247,0));margin:0 auto}
+
+/* ── Model metric cards ── */
+.metric-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.metric-card{background:var(--bg-card-alt);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.metric-card-val{font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1}
+.metric-card-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-top:6px}
+.metric-card-note{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+/* ── Coefficient formula display ── */
+.formula-display{background:var(--bg-page);border:1px solid var(--border);border-radius:10px;padding:20px;font-family:'Courier New',monospace;font-size:13px;line-height:2.2;overflow-x:auto}
+.formula-term{color:var(--text-secondary)}
+.formula-coeff{font-weight:700}
+.formula-pos{color:var(--bio)}
+.formula-neg{color:var(--pump)}
+.formula-var{color:var(--soil)}
+
+/* ── Abbr tooltip ── */
+abbr[title]{text-decoration:underline dotted rgba(255,255,255,.3);cursor:help;white-space:nowrap}
+
+/* ── Step badge ── */
+.step-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--bg-page);background:var(--soil);padding:3px 8px;border-radius:4px;margin-right:10px;vertical-align:middle}
+
+/* ── Variable toggle buttons ── */
+.var-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.12);background:transparent;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;font-family:inherit}
+.var-btn:hover{border-color:var(--col,#8888a4);color:var(--text-primary);background:rgba(255,255,255,0.04)}
+.var-btn.active{border-color:var(--col,#4fc3f7);background:rgba(255,255,255,0.07);color:#fff}
+.var-btn .vb-dot{width:8px;height:8px;border-radius:50%;background:var(--col,#8888a4);flex-shrink:0;opacity:.5;transition:opacity .18s}
+.var-btn.active .vb-dot{opacity:1}
+
+/* ── Box plots ── */
+.bxp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:4px}
+.bxp-card{background:var(--bg-card-alt);border:1px solid var(--border);border-radius:8px;padding:12px 8px;text-align:center}
+.bxp-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px}
+.bxp-stats{margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 4px;font-size:10px;color:var(--text-muted)}
+.bxp-stat-val{font-size:11px;font-weight:600;color:var(--text-secondary)}
+
+@media(max-width:900px){.grid-2,.grid-3,.grid-4,.grid-5{grid-template-columns:1fr}.two-col{grid-template-columns:1fr}.vision-compare{grid-template-columns:1fr}.section-title{font-size:22px}.hero-title{font-size:32px}.hero-stats{gap:24px}.metric-cards{grid-template-columns:1fr 1fr}.hw2-wrap{flex-direction:column;align-items:stretch}.hw2-link{flex-direction:row;padding:10px 0}.hw2-link-line{width:1px;height:40px;background:linear-gradient(to bottom,rgba(79,195,247,0),rgba(79,195,247,0.6),rgba(79,195,247,0))}.pipeline-wrap{flex-direction:column}.pipeline-arrow{transform:rotate(90deg)}.bxp-grid{grid-template-columns:1fr 1fr}}
+
+/* ── Section 6 panel tags ── */
+.s6-tag{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:5px 12px;border-radius:5px;margin-bottom:14px}
+.s6-tag svg{flex-shrink:0}
+/* ── Model pipeline flowchart ── */
+.pipeline-wrap{display:flex;align-items:stretch;flex-wrap:nowrap;gap:0;margin:20px 0;overflow-x:auto}
+.pipeline-stage{background:var(--bg-card-alt);border:1px solid var(--border);border-radius:8px;padding:14px 12px;min-width:110px;text-align:center;flex:1}
+.pipeline-stage-label{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.pipeline-stage-items{font-size:11.5px;color:var(--text-secondary);line-height:1.9}
+.pipeline-stage.model-core{border-color:var(--soil);background:rgba(79,195,247,0.06)}
+.pipeline-stage.decision{border-color:var(--pump);background:rgba(255,112,67,0.06)}
+.pipeline-stage.outcome{border-color:var(--bio);background:rgba(129,199,132,0.08)}
+.pipeline-arrow{display:flex;align-items:center;justify-content:center;padding:0 6px;color:var(--text-muted);font-size:18px;flex-shrink:0}
+
+/* ── Feature table ── */
+.feat-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px}
+.feat-table th{padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);text-align:left}
+.feat-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;line-height:1.6}
+.feat-table tr:last-child td{border-bottom:none}
+.feat-table tr:hover td{background:rgba(255,255,255,0.015)}
+.ftag{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-bottom:2px}
+.ftag-bio{background:rgba(129,199,132,0.18);color:#81c784}
+.ftag-phys{background:rgba(206,147,216,0.18);color:#ce93d8}
+.feat-formula{font-family:'Courier New',monospace;font-size:11px;color:var(--soil);background:rgba(79,195,247,0.07);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:2px}
+
+/* ── LOO-CV cycle chips ── */
+.loo-chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.loo-chip{width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1px solid;cursor:default}
+.loo-chip-all{background:rgba(79,195,247,0.12);color:var(--soil);border-color:rgba(79,195,247,0.3)}
+
+/* ── Eval metric row ── */
+.eval-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.eval-metric{background:var(--bg-card-alt);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+.eval-metric-val{font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1}
+.eval-metric-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-top:5px}
+
+
+/* ══════════════════════════════════════════════════
+   CUSTOMER APP VIEW
+══════════════════════════════════════════════════ */
+#app-view{background:#07070f;min-height:100vh;padding-bottom:60px}
+.view-tab-switcher{display:flex;gap:2px;background:rgba(255,255,255,.08);border-radius:9px;padding:3px;margin-left:auto}
+.view-tab-btn{background:none;border:none;color:var(--text-muted);font-size:12px;font-weight:700;padding:5px 16px;border-radius:7px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;letter-spacing:.3px}
+.view-tab-btn.active{background:#1c1c2a;color:#fff}
+/* App header */
+.app-hdr{max-width:960px;margin:0 auto;padding:28px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.app-inner-tabs{display:flex;gap:2px;background:rgba(255,255,255,.06);border-radius:10px;padding:3px}
+.app-inner-tab{background:none;border:none;color:var(--text-muted);font-size:12px;font-weight:700;padding:7px 18px;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.app-inner-tab.active{background:#1e1e2e;color:#fff}
+/* Hero card */
+.app-hero{border-radius:22px;padding:28px 28px 24px;margin-bottom:16px;position:relative;overflow:hidden}
+.app-hero.good{background:linear-gradient(135deg,#071f10 0%,#041208 100%);border:1px solid rgba(48,209,88,.18)}
+.app-hero.warn{background:linear-gradient(135deg,#1e1400 0%,#120d00 100%);border:1px solid rgba(255,159,10,.25)}
+.app-hero.crit{background:linear-gradient(135deg,#200a08 0%,#130504 100%);border:1px solid rgba(255,69,58,.25)}
+.status-pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.4px;margin-bottom:14px}
+.status-glow{width:9px;height:9px;border-radius:50%}
+.status-glow.good{background:#30d158;box-shadow:0 0 10px rgba(48,209,88,.7)}
+.status-glow.warn{background:#ff9f0a;box-shadow:0 0 10px rgba(255,159,10,.7)}
+.status-glow.crit{background:#ff453a;box-shadow:0 0 10px rgba(255,69,58,.7)}
+/* Countdown */
+.countdown-wrap{display:flex;align-items:baseline;gap:0;flex-wrap:wrap;margin-bottom:8px}
+.cdown-num{font-size:60px;font-weight:800;letter-spacing:-3px;line-height:1}
+.cdown-unit{font-size:18px;font-weight:600;color:rgba(255,255,255,.35);margin:0 12px 0 3px;letter-spacing:0}
+/* Soil bar in hero */
+.soil-progress-wrap{margin-top:20px}
+.soil-progress-label{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.35);margin-bottom:7px}
+.soil-track{height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden}
+.soil-fill{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.soil-fill.good{background:linear-gradient(90deg,#30d158,#34c759)}
+.soil-fill.warn{background:linear-gradient(90deg,#ff9f0a,#ffcc02)}
+.soil-fill.crit{background:linear-gradient(90deg,#ff6961,#ff453a)}
+/* Alert cards */
+.app-alert{display:flex;gap:13px;align-items:flex-start;padding:14px 16px;background:#111118;border-radius:14px;border:1px solid rgba(255,255,255,.07);margin-bottom:10px}
+.alert-icon-wrap{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+/* Factor chips */
+.factor-row{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.factor-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0e0e18;border:1px solid rgba(255,255,255,.06);border-radius:13px}
+.factor-icon-wrap{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.factor-bar-track{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.factor-bar-fill{height:100%;border-radius:2px}
+/* History rows */
+.history-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.history-item:last-child{border-bottom:none}
+.h-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+/* Insights page */
+.insights-section-title{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-bottom:16px;margin-top:32px}
+.insight-card{background:#0e0e18;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px}
+.contrib-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.contrib-label{font-size:12px;font-weight:600;color:var(--text-secondary);width:130px;flex-shrink:0}
+.contrib-track{flex:1;height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.contrib-fill{height:100%;border-radius:4px}
+.contrib-pct{font-size:11px;font-weight:700;color:var(--text-secondary);width:36px;text-align:right;flex-shrink:0}
+.cycle-bar-item{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cycle-bar-label{font-size:11px;font-weight:600;width:28px;flex-shrink:0;color:var(--text-muted)}
+.cycle-bar-track{height:22px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden;flex:1;position:relative}
+.cycle-bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:rgba(255,255,255,.9);white-space:nowrap}
+.accuracy-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.accuracy-row:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<div class="hero">
+<div class="container">
+  <div class="hero-eyebrow">ELEC70126 · Imperial College London · Plant IoT System</div>
+  <h1 class="hero-title">I keep killing<br>my plants.<br><em>So I built a system</em><br>to fix that.</h1>
+  <p class="hero-subtitle">
+    The problem: I forget to water them, or overwater in panic. Plants don't come with a <strong>low battery indicator</strong>.<br>
+    The solution: 32 days of continuous IoT sensor data, statistical analysis, and a predictive model that tells me (and could tell anyone) <strong>exactly when to water</strong>, even without a soil sensor.
+  </p>
+  <div class="hero-stats">
+    <div>
+      <div class="hero-stat-val" style="color:var(--soil)">32</div>
+      <div class="hero-stat-label">days of data</div>
+    </div>
+    <div>
+      <div class="hero-stat-val" style="color:var(--text-primary)">1,514</div>
+      <div class="hero-stat-label">sensor readings</div>
+    </div>
+    <div>
+      <div class="hero-stat-val" style="color:var(--pump)">13</div>
+      <div class="hero-stat-label">waterings logged</div>
+    </div>
+    <div>
+      <div class="hero-stat-val" style="color:var(--light)">11</div>
+      <div class="hero-stat-label">drying cycles</div>
+    </div>
+
+  </div>
+  <div class="hero-callout">
+    <span><strong>The narrative arc:</strong> We start with raw data from two wireless sensor nodes → identify environmental drivers of soil drying → model the physics &amp; biology → build a predictive model that generalises to any plant of the same type, using only temperature, humidity, and light.</span>
+  </div>
+</div>
+</div>
+
+<nav>
+  <div class="nav-inner">
+    <span class="nav-brand">Plant Monitor</span>
+    <span class="nav-sep" id="nav-sep-main">|</span>
+    <a class="nav-link active" id="nav-s1" onclick="scrollTo('s1')">01 · Data</a>
+    <a class="nav-link" id="nav-s2" onclick="scrollTo('s2')">02 · Correlations</a>
+    <a class="nav-link" id="nav-s3" onclick="scrollTo('s3')">03 · Biology</a>
+    <a class="nav-link" id="nav-s4" onclick="scrollTo('s4')">04 · Physics</a>
+    <a class="nav-link" id="nav-s5" onclick="scrollTo('s5')">05 · Synthesis</a>
+    <a class="nav-link" id="nav-s6" onclick="scrollTo('s6')">06 · Model</a>
+    <div class="view-tab-switcher" style="margin-left:auto">
+      <button class="view-tab-btn active" id="vtab-dashboard" onclick="showView('dashboard')">Research Dashboard</button>
+      <button class="view-tab-btn" id="vtab-app" onclick="showView('app')">Customer App</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════ SECTION 1: THE DATA ═══════════════════════ -->
+<section class="section" id="s1">
+<div class="container">
+  <div class="section-eyebrow"><span class="step-badge">STEP 01</span>SETUP &amp; CONTEXT</div>
+  <h2 class="section-title">32 days of continuous plant monitoring</h2>
+  <p class="section-question">What did we measure, and how does the hardware work?</p>
+  <p class="intro-text">Two wireless sensor nodes connected via <abbr title="Long Range radio: low-power wireless protocol, range up to several km, used here for indoor node-to-node communication">LoRa</abbr> ran continuously for 32 days. Node 1 watches the plant and environment; Node 2 acts on the data. Every 30 minutes, readings were logged: soil moisture, temperature, humidity, and light intensity. This dataset is the foundation for everything that follows.</p>
+
+  <div class="grid-2" style="align-items:start">
+    <!-- Panel 1A: Hardware Schematic — Two LoRa32 nodes -->
+    <div class="card">
+      <div class="chart-title">Two-node wireless architecture</div>
+      <div class="chart-subtitle">Heltec LoRa32 V3 (ESP32-S3) · 915 MHz LoRa link · 30-min polling</div>
+      <div class="hw2-wrap" style="margin-top:20px">
+
+        <!-- Node 1: Sensor -->
+        <div class="hw2-node">
+          <div class="hw2-node-title" style="color:var(--soil)">NODE 1: SENSOR</div>
+          <div class="hw2-lora" style="border:1px solid rgba(79,195,247,.3);color:var(--soil)">Heltec LoRa32 V3<br><span style="font-size:10px;color:var(--text-muted);font-weight:400">ESP32-S3 + SX1262</span></div>
+          <div class="hw2-sensors">
+            <div class="hw2-sensor">
+              <div class="hw2-sensor-dot" style="background:var(--soil)"></div>
+              <div>
+                <div style="font-weight:600;color:var(--soil)">Capacitive Soil Sensor</div>
+                <div style="color:var(--text-muted)"><abbr title="Analog-to-Digital Converter: converts continuous voltage signal to integer 0–4095 on the ESP32">ADC</abbr> reading · Higher value = drier soil<br>WET ≈ 265 · DRY ≈ 980</div>
+              </div>
+            </div>
+            <div class="hw2-sensor">
+              <div class="hw2-sensor-dot" style="background:var(--temp)"></div>
+              <div>
+                <div style="font-weight:600;color:var(--temp)"><abbr title="Digital humidity/temperature sensor by AOSONG: outputs 8-bit temp (0–50°C) and humidity (20–90%RH) over single-wire protocol">DHT11</abbr></div>
+                <div style="color:var(--text-muted)">Temperature (°C) + Humidity (%RH)<br>→ derived: <abbr title="Vapor Pressure Deficit: difference between saturation vapor pressure and actual vapor pressure. High VPD = dry air = faster transpiration from leaf stomata. VPD = sat_vp(T) × (1 − RH/100)">VPD</abbr></div>
+              </div>
+            </div>
+            <div class="hw2-sensor">
+              <div class="hw2-sensor-dot" style="background:var(--light)"></div>
+              <div>
+                <div style="font-weight:600;color:var(--light)"><abbr title="Light-Dependent Resistor: variable resistor whose resistance decreases as light intensity increases. Raw ADC reading is inverted: light_intensity = 4095 − light_raw">LDR</abbr></div>
+                <div style="color:var(--text-muted)">light_intensity = 4095 − raw<br>(inverted scale)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wireless link -->
+        <div class="hw2-link">
+          <div class="hw2-link-line"></div>
+          <div class="hw2-link-label">LoRa<br>915 MHz</div>
+          <div class="hw2-link-line"></div>
+        </div>
+
+        <!-- Node 2: Actuator -->
+        <div class="hw2-node">
+          <div class="hw2-node-title" style="color:var(--pump)">NODE 2: ACTUATOR</div>
+          <div class="hw2-lora" style="border:1px solid rgba(255,112,67,.3);color:var(--pump)">Heltec LoRa32 V3<br><span style="font-size:10px;color:var(--text-muted);font-weight:400">ESP32-S3 + SX1262</span></div>
+          <div class="hw2-sensors">
+            <div class="hw2-sensor">
+              <div class="hw2-sensor-dot" style="background:var(--pump)"></div>
+              <div>
+                <div style="font-weight:600;color:var(--pump)">Relay Module (5V)</div>
+                <div style="color:var(--text-muted)">Triggered by LoRa packet<br>when soil2 ≥ 800 ADC</div>
+              </div>
+            </div>
+            <div class="hw2-sensor">
+              <div class="hw2-sensor-dot" style="background:rgba(255,112,67,0.5)"></div>
+              <div>
+                <div style="font-weight:600;color:var(--text-secondary)">Submersible Pump</div>
+                <div style="color:var(--text-muted)">Waters plant until<br>soil2 ≤ 280 ADC (WET)</div>
+              </div>
+            </div>
+            <div class="hw2-sensor" style="background:rgba(255,112,67,.06);border:1px dashed rgba(255,112,67,.2)">
+              <div class="hw2-sensor-dot" style="background:var(--text-muted)"></div>
+              <div>
+                <div style="font-weight:600;color:var(--text-muted)">pump_event column</div>
+                <div style="color:var(--text-muted)">Logged in CSV as 1/0<br>13 events over 32 days</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 1B: KPIs -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="grid-2" style="gap:12px">
+        <div class="kpi-card">
+          <div class="big-number" style="color:var(--soil)" id="kpi-days">32</div>
+          <div class="kpi-label">Days</div>
+        </div>
+        <div class="kpi-card">
+          <div class="big-number" style="color:var(--text-primary)" id="kpi-readings">1,514</div>
+          <div class="kpi-label">Readings</div>
+        </div>
+        <div class="kpi-card">
+          <div class="big-number" style="color:var(--pump)" id="kpi-waterings">13</div>
+          <div class="kpi-label">Waterings</div>
+        </div>
+        <div class="kpi-card">
+          <div class="big-number" style="color:var(--temp)" id="kpi-temp">—</div>
+          <div class="kpi-unit">°C avg</div>
+          <div class="kpi-label">Temperature</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="big-number" style="color:var(--light);font-size:38px" id="kpi-cycle">—<span style="font-size:18px;font-weight:600;color:var(--text-secondary)"> h avg cycle</span></div>
+        <div class="kpi-label">Drying Cycle Duration</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 1C: Interactive Timeline -->
+  <div class="card mt32">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+      <div>
+        <div class="chart-label">Soil moisture, temperature, humidity & light over 4 weeks</div>
+        <div class="chart-title" style="margin-bottom:2px">Sensor data explorer: toggle variables, zoom &amp; pan</div>
+        <div class="chart-subtitle">30-minute readings · 13 Feb to 17 Mar 2026 · Scroll to zoom, drag to pan</div>
+      </div>
+      <div class="range-btns" style="margin:0">
+        <button class="range-btn" data-range="2W" onclick="setRange('2W',this)">2W</button>
+        <button class="range-btn" data-range="1M" onclick="setRange('1M',this)">1M</button>
+        <button class="range-btn active" data-range="ALL" onclick="setRange('ALL',this)">ALL</button>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0">
+      <button class="var-btn active" data-idx="0" onclick="toggleVar(this)" style="--col:#4fc3f7"><span class="vb-dot"></span>Soil moisture</button>
+      <button class="var-btn" data-idx="1" onclick="toggleVar(this)" style="--col:#ef5350"><span class="vb-dot"></span>Temperature</button>
+      <button class="var-btn" data-idx="2" onclick="toggleVar(this)" style="--col:#64b5f6"><span class="vb-dot"></span>Humidity</button>
+      <button class="var-btn" data-idx="3" onclick="toggleVar(this)" style="--col:#ffd54f"><span class="vb-dot"></span>Light</button>
+    </div>
+    <canvas id="chartTimeline" height="200"></canvas>
+    <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
+      <span style="display:inline-block;width:10px;height:10px;background:rgba(255,112,67,0.5);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Pump events highlighted · click a pump line to inspect that watering cycle
+      &nbsp;·&nbsp; non-soil variables shown as % of range (right axis)
+    </div>
+  </div>
+
+  <!-- Panel 1D: Box plots -->
+  <div class="card mt20">
+    <div class="chart-label">Statistical distribution of all 4 sensor variables</div>
+    <div class="chart-title">Distribution overview: key statistics across 1,515 readings</div>
+    <div class="chart-subtitle">Whiskers = min/max · box = Q1 to Q3 · line = median · dot = mean</div>
+    <div class="bxp-grid" id="bxp-grid"></div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════ SECTION 2: CORRELATIONS ═══════════════════════ -->
+<section class="section" id="s2">
+<div class="container">
+  <div class="section-eyebrow"><span class="step-badge">STEP 02</span>STATISTICAL FOUNDATION</div>
+  <h2 class="section-title">Finding the signal in 1,514 readings</h2>
+  <p class="section-question">What factors correlate with water loss, and how do we measure it correctly?</p>
+
+  <!-- Panel 2A: Cycle Overlay -->
+  <div class="card">
+    <div class="chart-label">All 11 drying cycles overlaid on a normalized timeline</div>
+    <div class="chart-title">Each watering creates a clean, repeatable experiment</div>
+    <div class="chart-subtitle">Normalized soil moisture | 0 = just watered, 1 = pump threshold | Thick white = mean</div>
+    <canvas id="chartCycleOverlay" height="120"></canvas>
+  </div>
+
+  <!-- Panel 2B: Methodology -->
+  <div class="grid-2 mt20" style="align-items:start">
+    <div class="card">
+      <div class="chart-label">Light intensity vs. soil drying rate (every 30-min reading)</div>
+      <div class="chart-title">Point-to-point: <span id="pt-r-badge" class="badge badge-blue">r = —</span> looks weak</div>
+      <div class="chart-subtitle">45,000+ individual readings · heavy overplotting expected</div>
+      <canvas id="chartScatterPoint" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="chart-label">Average light vs. average drying rate (one dot per cycle)</div>
+      <div class="chart-title">Between-cycle: <span id="cycle-r-badge" class="badge badge-yellow">r = —</span> 3× stronger signal</div>
+      <div class="chart-subtitle">n = 11 cycles · each dot = one full drying period</div>
+      <canvas id="chartScatterCycle" height="200"></canvas>
+    </div>
+  </div>
+  <div class="methodology-callout mt20">
+    <p>Averaging over complete cycles eliminates short-term sensor noise.</p>
+    <p>Each cycle is an independent natural experiment.</p>
+    <p>The true signal is <strong>3× stronger</strong> than it first appears.</p>
+  </div>
+
+  <!-- Panel 2C: Correlation Bars -->
+  <div class="card mt20">
+    <div class="chart-label">How strongly does each sensor variable correlate with the drying rate?</div>
+    <div class="chart-title">All three correlate: signal is weak hourly but clear cycle-to-cycle</div>
+    <div class="chart-subtitle">Pearson r with avg. drying rate · solid = between-cycle · faint = hourly · n = 11 cycles</div>
+    <div id="chartCorrBars"></div>
+  </div>
+
+  <div class="journey-connector">
+    <div class="journey-connector-line"></div>
+    <div class="journey-connector-body">
+      <div class="journey-connector-label">What we learned → What comes next</div>
+      <p class="journey-connector-text">Light (r = +0.55) is the strongest cycle-level driver: brighter cycles dry faster. Humidity (r = −0.37) is negative because wetter air slows drying. But <strong>correlation isn't mechanism</strong>. To build a real model, we need to understand WHY, and specifically separate the biological signal (the plant opening and closing stomata) from the purely physical evaporation that would happen even without a plant. That split determines which features belong in our model.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════ SECTION 3: BIOLOGY ═══════════════════════ -->
+<section class="section" id="s3">
+<div class="container">
+  <div class="section-eyebrow"><span class="step-badge">STEP 03</span>BIOLOGICAL FACTORS</div>
+  <h2 class="section-title">What the plant is doing</h2>
+  <p class="section-question">How does plant physiology drive soil moisture loss?</p>
+  <p class="intro-text">Plants aren't passive. They actively regulate water loss through their <em>stomata</em>, tiny pores on leaves that open for photosynthesis and close to conserve water. Stomata are fully open around midday and shut at night. Every biological effect below is measured directly from sensor data.</p>
+
+  <!-- Panel 3A: Day/Night -->
+  <div class="card">
+    <div class="chart-label">Drying rate by hour of day: day vs. night comparison</div>
+    <div class="chart-title">The plant loses water <span id="dn-ratio" class="big-number" style="font-size:28px;color:var(--light)">7×</span> faster during daylight hours</div>
+    <div class="chart-subtitle">Mean ± SEM across all 11 cycles · 24 hourly bins</div>
+    <canvas id="chartDayNight" height="160"></canvas>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;align-items:center">
+      <div style="background:rgba(255,213,79,0.08);border:1px solid rgba(255,213,79,0.25);border-radius:8px;padding:10px 16px;min-width:140px">
+        <div style="font-size:10px;color:var(--text-muted);letter-spacing:.06em;margin-bottom:4px">DAYTIME (7–20h)</div>
+        <div style="font-size:20px;font-weight:700;color:var(--light)" id="dn-day-val">—</div>
+      </div>
+      <div style="background:rgba(100,181,246,0.08);border:1px solid rgba(100,181,246,0.25);border-radius:8px;padding:10px 16px;min-width:140px">
+        <div style="font-size:10px;color:var(--text-muted);letter-spacing:.06em;margin-bottom:4px">NIGHTTIME (20–7h)</div>
+        <div style="font-size:20px;font-weight:700;color:var(--phys)" id="dn-night-val">—</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);border-left:1px solid var(--border);padding-left:16px">
+        <div style="margin-bottom:2px;font-size:11px">Welch t-test</div>
+        <div id="dn-ttest" style="color:var(--text-secondary)">—</div>
+      </div>
+    </div>
+    <div class="collapsible">
+      <button class="collapsible-btn" onclick="toggleCollapsible(this)">
+        <span>Learn more: Transpiration mechanism</span>
+        <span class="collapsible-arrow">▼</span>
+      </button>
+      <div class="collapsible-content">
+        <div class="collapsible-body">During daylight, plants open their stomata to absorb CO₂ for photosynthesis. Water evaporates through these open pores as an unavoidable side effect. This process, called <strong>transpiration</strong>, accounts for the majority of daytime water loss. At night, stomata close to conserve water, so the drying rate drops dramatically.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 3C: Light Analysis -->
+  <div class="card mt20">
+    <div class="chart-label">Drying rate vs. light intensity: three different views of the same relationship</div>
+    <div class="chart-title">Light drives transpiration: <span id="light-ratio-text" style="color:var(--light)">19×</span> difference from dark to direct sun</div>
+    <div class="chart-subtitle">Left: mean rate by light bin · Right: scatter per reading</div>
+    <div class="grid-2" style="gap:20px;margin-top:8px">
+      <div>
+        <div class="chart-subtitle" style="margin-bottom:8px;color:var(--text-secondary)">Light bins: categorical effect</div>
+        <canvas id="chartLightBins" height="160"></canvas>
+      </div>
+      <div>
+        <div class="chart-subtitle" style="margin-bottom:8px;color:var(--text-secondary)">Response curve: fine-grained</div>
+        <canvas id="chartLightCurve" height="160"></canvas>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:10px 14px;background:rgba(255,213,79,0.05);border:1px solid rgba(255,213,79,0.2);border-radius:8px;font-size:12px;color:var(--text-muted)">
+      <strong style="color:var(--light)">Causality confirmed: peak cross-correlation lag = <span id="lag-caption">0h</span>.</strong> Light and drying rate peak simultaneously with no delay, ruling out reverse causation and confirming light as a direct driver.
+    </div>
+  </div>
+
+  <!-- Panel 3D: Stomata Stress -->
+  <div class="card mt20">
+    <div class="chart-label">Drying rate at the start vs. the end of each cycle</div>
+    <div class="chart-title">As soil dries, the plant reduces transpiration (ABA stress response)</div>
+    <div class="chart-subtitle">First quarter vs. last quarter of each drying cycle | <span id="stomata-badge" class="badge badge-green">—</span></div>
+    <canvas id="chartStomataStress" height="100"></canvas>
+    <div class="collapsible">
+      <button class="collapsible-btn" onclick="toggleCollapsible(this)">
+        <span>Learn more: ABA stress response</span>
+        <span class="collapsible-arrow">▼</span>
+      </button>
+      <div class="collapsible-content">
+        <div class="collapsible-body">When soil dries below a critical threshold, plant roots produce <strong>ABA (abscisic acid)</strong>. This stress hormone signals leaf stomata to partially close, reducing water loss. Our sensor detects this: the drying rate systematically decreases in the second half of each cycle compared to the first.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="journey-connector">
+    <div class="journey-connector-line"></div>
+    <div class="journey-connector-body">
+      <div class="journey-connector-label">What we learned → What comes next</div>
+      <p class="journey-connector-text">The plant's biology is clear: stomata open at 13:00 (peak drying), <strong><abbr title="Abscisic acid: plant stress hormone that triggers stomatal closure when soil water becomes scarce, reducing transpiration by up to 21%">ABA</abbr> stress reduces late-cycle transpiration by ~21%</strong>, and the circadian <abbr title="Fast Fourier Transform: decomposes a time series into frequency components. The dominant frequency peak at 24h confirms the circadian rhythm in drying data.">FFT</abbr> peak sits exactly at 24 h. But biology alone doesn't tell the whole story. The same day/night pattern also has a physical origin: temperature, humidity, and substrate diffusion physics all operate on a 24-hour cycle too.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════ SECTION 4: PHYSICS ═══════════════════════ -->
+<section class="section" id="s4">
+<div class="container">
+  <div class="section-eyebrow"><span class="step-badge">STEP 04</span>PHYSICAL FACTORS</div>
+  <h2 class="section-title">What the environment is doing</h2>
+  <p class="section-question">What physical mechanisms drive water loss independently of the plant?</p>
+  <p class="intro-text">Even if the plant were removed, the soil would still lose water. <em>Temperature</em>, <em>air dryness</em> (<abbr title="Vapor Pressure Deficit: how 'thirsty' the air is. Higher VPD means faster evaporation and transpiration. Computed as: sat_vp(T) × (1 − RH/100)">VPD</abbr>), and <em>substrate physics</em> drive evaporation regardless of biology. Fickian diffusion predicts soil drying follows an exponential law: moisture ∝ 1 − e<sup>−t/τ</sup>, where <abbr title="Time constant τ (tau): characteristic time for drying. Smaller τ means faster drying. Physically, τ represents the inverse of the diffusion rate through the soil substrate.">τ</abbr> is the time constant.</p>
+
+  <!-- Panel 4A: VPD -->
+  <div class="card">
+    <div class="chart-label">Drying rate by air dryness (VPD): from humid to desert-dry</div>
+    <div class="chart-title">Dry air pulls <span id="vpd-ratio-text" style="color:var(--vpd)">6×</span> more water from the soil</div>
+    <div class="chart-subtitle">VPD bins from 0.2 to 1.8 kPa, averaged across all 30-min readings</div>
+    <canvas id="chartVpdBins" height="80"></canvas>
+    <div class="card-alt" style="border-radius:8px;padding:14px;margin-top:16px;font-size:13px;color:var(--text-secondary)">
+      <strong style="color:var(--text-primary)">VPD (Vapor Pressure Deficit)</strong> measures how "thirsty" the air is. Computed from temperature and humidity:<br>
+      <span style="font-family:'Courier New',monospace;color:var(--vpd)">VPD = sat_pressure(T) × (1 − RH/100)</span>
+    </div>
+  </div>
+
+  <!-- Panel 4B: Heating Effect -->
+  <div class="card mt20">
+    <div class="chart-label">Drying rate vs. temperature: nighttime only, plant dormant</div>
+    <div class="chart-title">Higher night temperatures associate with faster drying (physical evaporation pathway)</div>
+    <div class="chart-subtitle">Nighttime readings only (light &lt; 100) · biological transpiration excluded · n = <span id="heating-n">—</span></div>
+    <canvas id="chartHeating" height="120"></canvas>
+    <div id="heating-stats" style="margin-top:10px;font-size:12px;color:var(--text-muted)">—</div>
+  </div>
+
+  <!-- Panel 4C: Retention Curve -->
+  <div class="card mt20">
+    <div class="chart-label">Drying rate by soil moisture level: from wet to dry</div>
+    <div class="chart-title">Drying accelerates as soil dries (substrate moisture retention curve)</div>
+    <div class="chart-subtitle">Higher ADC = drier soil · each bar = mean of all readings in that moisture range</div>
+    <canvas id="chartRetention" height="80"></canvas>
+    <div style="margin-top:12px;font-size:13px;color:var(--text-secondary)">
+      Near-dry soil (ADC 600–800) dries <strong style="color:var(--soil)">faster</strong> than freshly watered soil. This is a time-of-day selection effect: dry soil values occur during active transpiration hours, while wet values occur at night.
+    </div>
+  </div>
+
+
+
+  <div class="journey-connector">
+    <div class="journey-connector-line"></div>
+    <div class="journey-connector-body">
+      <div class="journey-connector-label">What we learned → What comes next</div>
+      <p class="journey-connector-text">Physics confirms: VPD strongly correlates with drying rate (r=0.58 cycle-level), temperature adds an independent contribution (r=0.32), and drying follows a consistent linear trend across all 11 cycles. We now have <strong>two independent mechanistic explanations</strong> for the same pattern: biological (stomata) and physical (evaporation, VPD). The next step is to combine them into a single quantitative model.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════ SECTION 5: SYNTHESIS ═══════════════════════ -->
+<section class="section" id="s5">
+<div class="container">
+  <div class="section-eyebrow"><span class="step-badge">STEP 05</span>PUTTING IT TOGETHER</div>
+  <h2 class="section-title">From observations to model inputs</h2>
+  <p class="section-question">What did Steps 03 and 04 actually find, and how does each finding become a model feature?</p>
+  <p class="intro-text">Steps 03 and 04 weren't just exploratory. Every finding produced a quantified, justified driver of soil drying. Those drivers become the five features of the prediction model. This step makes that connection explicit.</p>
+
+  <!-- Panel 5A: findings as stacked cards, sorted by effect size -->
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+
+    <!-- 1. Stomata rhythm — biggest biological effect -->
+    <div style="border-left:4px solid #81c784;padding:18px 20px;background:rgba(129,199,132,0.05);border-radius:0 10px 10px 0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div style="font-size:22px;font-weight:800;color:#81c784;line-height:1">Stomata rhythm</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#81c784;opacity:.7">Step 03: Biological</div>
+      </div>
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:10px">When stomata open at sunrise, drying rate jumps <strong style="color:#dde3ef"><span id="s5-dn-ratio">7×</span></strong>: from <span id="s5-night-rate">1.9</span> ADC/h at night to <span id="s5-day-rate">13.1</span> ADC/h during the day. This is the single largest driver of water loss.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--text-muted)">Welch t-test p &lt; 0.001 · n = 11 cycles</span>
+        <span style="margin-left:auto;font-size:11.5px;color:#81c784;font-family:monospace;background:rgba(129,199,132,0.1);padding:4px 10px;border-radius:4px">→ Feature: stomata(h) × light/4095</span>
+      </div>
+    </div>
+
+    <!-- 2. Air dryness (VPD) — strongest cycle-level predictor -->
+    <div style="border-left:4px solid #ce93d8;padding:18px 20px;background:rgba(206,147,216,0.05);border-radius:0 10px 10px 0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div style="font-size:22px;font-weight:800;color:#ce93d8;line-height:1">Air dryness (VPD)</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#ce93d8;opacity:.7">Step 04: Physical</div>
+      </div>
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:10px">Dry air pulls <strong style="color:#dde3ef"><span id="s5-vpd-ratio">6×</span></strong> more water from the soil than humid air. VPD, which combines temperature and humidity into a single evaporation index, is the strongest cycle-scale predictor.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--text-muted)">Cycle-level r = 0.58 · derived from sensor T & RH</span>
+        <span style="margin-left:auto;font-size:11.5px;color:#ce93d8;font-family:monospace;background:rgba(206,147,216,0.1);padding:4px 10px;border-radius:4px">→ Feature: sat_vp(T) · (1 − RH/100)</span>
+      </div>
+    </div>
+
+    <!-- 3. Light surface evaporation -->
+    <div style="border-left:4px solid #ffd54f;padding:18px 20px;background:rgba(255,213,79,0.05);border-radius:0 10px 10px 0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div style="font-size:22px;font-weight:800;color:#ffd54f;line-height:1">Light intensity</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#ffd54f;opacity:.7">Step 04: Physical</div>
+      </div>
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:10px">Direct sunlight drives <strong style="color:#dde3ef"><span id="s5-light-ratio">19×</span></strong> more evaporation than complete darkness, independently of stomata. Radiation heats the soil surface and drives bare-soil water loss even when the plant is inactive.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--text-muted)">Cycle-level r = 0.55 · 0h causal lag confirmed</span>
+        <span style="margin-left:auto;font-size:11.5px;color:#ffd54f;font-family:monospace;background:rgba(255,213,79,0.1);padding:4px 10px;border-radius:4px">→ Feature: light / 4095</span>
+      </div>
+    </div>
+
+    <!-- 4. ABA stress response -->
+    <div style="border-left:4px solid #81c784;padding:18px 20px;background:rgba(129,199,132,0.05);border-radius:0 10px 10px 0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div style="font-size:22px;font-weight:800;color:#81c784;line-height:1">ABA stress closure</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#81c784;opacity:.7">Step 03: Biological</div>
+      </div>
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:10px">As the soil dries, the plant progressively closes its stomata, reducing the drying rate by <strong style="color:#dde3ef"><span id="s5-aba-pct">21</span>%</strong> by the end of a cycle. This self-limiting behaviour must be accounted for or the model overestimates late-cycle drying.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--text-muted)">Early-cycle vs late-cycle rate · measured across all 11 cycles</span>
+        <span style="margin-left:auto;font-size:11.5px;color:#81c784;font-family:monospace;background:rgba(129,199,132,0.1);padding:4px 10px;border-radius:4px">→ Feature: φ = (soil − 280) / (800 − 280)</span>
+      </div>
+    </div>
+
+    <!-- 5. Temperature -->
+    <div style="border-left:4px solid #ef5350;padding:14px 20px;background:rgba(239,83,80,0.04);border-radius:0 10px 10px 0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+        <div style="font-size:22px;font-weight:800;color:#ef5350;line-height:1">Temperature</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#ef5350;opacity:.7">Step 04: Physical</div>
+      </div>
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:10px">Higher temperature increases kinetic energy of water molecules, boosting evaporation rate. Weaker than VPD at the cycle scale (r = 0.32) but adds independent variance and is already measured by the sensor.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--text-muted)">Cycle-level r = 0.32 · partially captured by VPD already</span>
+        <span style="margin-left:auto;font-size:11.5px;color:#ef5350;font-family:monospace;background:rgba(239,83,80,0.08);padding:4px 10px;border-radius:4px">→ Feature: temp (°C)</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="journey-connector">
+    <div class="journey-connector-line"></div>
+    <div class="journey-connector-body">
+      <div class="journey-connector-label">What we found → What we build</div>
+      <p class="journey-connector-text">Five empirically justified features. Four measured by the sensor directly (light, temp, humidity), one derived (VPD), two engineered from first principles (stomata×light interaction, cycle phase). Each feature has a known sign and physical meaning. The next step: fit a <abbr title="Ridge regression: OLS with an L2 regularisation term α·‖β‖² — shrinks large coefficients toward zero to prevent overfitting on n=11 cycles while keeping all features interpretable.">Ridge regression</abbr> to those features, evaluate it under Leave-One-Out cross-validation, and translate the output into a watering schedule.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════ SECTION 6: PREDICTION ═══════════════════════ -->
+<section class="section" id="s6">
+<div class="container">
+  <div class="section-eyebrow"><span class="step-badge">STEP 06</span>THE MODEL</div>
+  <h2 class="section-title">Predicting when to water without a soil sensor</h2>
+  <p class="section-question">Can environmental data alone replace per-plant soil sensing?</p>
+  <p class="intro-text">Steps 03–05 identified every major driver. Now those drivers become model features. A <abbr title="Ridge regression: OLS with an L2 regularisation term α·‖β‖² that prevents overfitting on small datasets. Keeps coefficients interpretable and physically meaningful.">Ridge regression</abbr> predicts the hourly soil drying rate from environmental inputs. Integrating that rate over time gives a full soil moisture trajectory — and the moment it crosses the dry threshold is our predicted watering time. <strong>No soil sensor needed at deployment.</strong></p>
+
+  <!-- Panel 6A: Architecture pipeline -->
+  <div class="card">
+    <div class="s6-tag" style="background:rgba(79,195,247,0.12);color:var(--soil)">
+      <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0" y="0" width="4" height="4" rx="1" fill="currentColor"/><rect x="6" y="0" width="4" height="4" rx="1" fill="currentColor" opacity=".5"/><rect x="3" y="6" width="4" height="4" rx="1" fill="currentColor" opacity=".7"/></svg>
+      Architecture
+    </div>
+    <div class="chart-label">From raw sensor reading to watering decision: end-to-end model pipeline</div>
+    <div class="chart-title">Five steps: features → Ridge regression → Δsoil/h → integration → trigger</div>
+    <div class="pipeline-wrap">
+      <div class="pipeline-stage">
+        <div class="pipeline-stage-label">Raw Inputs</div>
+        <div class="pipeline-stage-items">
+           Temp (°C)<br>
+           Humidity (%)<br>
+          ️ Light (ADC)
+        </div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-stage">
+        <div class="pipeline-stage-label">Feature Engineering</div>
+        <div class="pipeline-stage-items">
+          VPD = f(T, RH)<br>
+          Stomata × Light<br>
+          Cycle phase
+        </div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-stage model-core">
+        <div class="pipeline-stage-label">Ridge Regression</div>
+        <div class="pipeline-stage-items">
+          β₀ + β₁·SL<br>
+          + β₂·L + β₃·VPD<br>
+          + β₄·T + β₅·φ
+        </div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-stage">
+        <div class="pipeline-stage-label">Output</div>
+        <div class="pipeline-stage-items">
+          Δsoil/h<br>
+          (drying rate<br>prediction)
+        </div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-stage">
+        <div class="pipeline-stage-label">Integration</div>
+        <div class="pipeline-stage-items">
+          Σ Δsoil · Δt<br>
+          ↓<br>
+          soil(t)
+        </div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-stage decision">
+        <div class="pipeline-stage-label">Decision</div>
+        <div class="pipeline-stage-items">
+          soil(t) ≥ 800?<br>
+          ↓<br>
+          <strong style="color:var(--pump)"> WATER</strong>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px 14px;background:rgba(79,195,247,.05);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.7;margin-top:4px">
+      <strong style="color:var(--text-secondary)">Why Ridge over OLS?</strong> With only n=11 training cycles and 5 correlated features, OLS risks overfitting. Ridge adds a penalty α·‖β‖² that shrinks large coefficients without losing interpretability. Tuned to α=0.1 (cycle model) and α=0.5 (hourly model).
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+      <div style="border-left:3px solid var(--soil);padding:12px 16px;background:rgba(79,195,247,0.05);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--soil);margin-bottom:4px">Output A: Evaluation below</div>
+        <div style="font-size:15px;font-weight:700;color:#dde3ef;margin-bottom:4px">Δsoil/h prediction</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Hourly drying rate from environmental inputs. Noisy at 30-min resolution but meaningful at cycle scale (R²=45%).</div>
+      </div>
+      <div style="border-left:3px solid var(--pump);padding:12px 16px;background:rgba(255,112,67,0.05);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--pump);margin-bottom:4px">Output B: Primary goal</div>
+        <div style="font-size:15px;font-weight:700;color:#dde3ef;margin-bottom:4px">t̂<sub>water</sub> = (800 − s₀) / r̂</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Hours until plant needs water. Directly answers the original question, evaluated in Eval B below.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 6B: Feature table -->
+  <div class="card mt20">
+    <div class="s6-tag" style="background:rgba(255,213,79,0.12);color:var(--light)">
+      <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 0L6.12 3.38H9.51L6.88 5.47L7.94 8.82L5 6.69L2.06 8.82L3.12 5.47L0.49 3.38H3.88Z" fill="currentColor"/></svg>
+      Feature Engineering
+    </div>
+    <div class="chart-label">What goes into the model: 5 features, their origin, and their weight</div>
+    <div class="chart-title">Each feature is directly justified by the biology or physics identified in Steps 03 to 05</div>
+    <table class="feat-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Formula</th>
+          <th>Mechanism</th>
+          <th>r (hourly)</th>
+          <th>r (cycle)</th>
+          <th>β (hourly)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Stomata × Light</strong></td>
+          <td><span class="feat-formula">max(0, cos((h−13)·π/12)) × light/4095</span></td>
+          <td><span class="ftag ftag-bio">BIOLOGICAL</span> Interaction of leaf aperture (peaks 13:00) and radiation intensity: the dominant biological transpiration term. Confirmed by 7× day/night ratio and 0h cross-correlation lag.</td>
+          <td style="color:var(--soil)">0.18</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--bio)" id="td-beta-sl">+19.74</td>
+        </tr>
+        <tr>
+          <td><strong>Normalised Light</strong></td>
+          <td><span class="feat-formula">(4095 − raw) / 4095</span></td>
+          <td><span class="ftag ftag-phys">PHYSICAL</span> Direct radiation drives surface evaporation independently of stomata. Also correlates with temperature. Confirmed in Step 03 (r=0.55 between cycles).</td>
+          <td style="color:var(--soil)">0.18</td>
+          <td style="color:var(--soil)">0.55</td>
+          <td style="color:var(--bio)" id="td-beta-light">+31.44</td>
+        </tr>
+        <tr>
+          <td><strong>VPD</strong></td>
+          <td><span class="feat-formula">sat_vp(T) · (1 − RH/100)</span></td>
+          <td><span class="ftag ftag-phys">PHYSICAL</span> Vapor pressure deficit drives evaporation flux through open stomata and bare soil surface. Strongest between-cycle predictor (r=0.58, Step 04).</td>
+          <td style="color:var(--soil)">0.07</td>
+          <td style="color:var(--soil)">0.58</td>
+          <td style="color:var(--bio)" id="td-beta-vpd">+3.44</td>
+        </tr>
+        <tr>
+          <td><strong>Temperature</strong></td>
+          <td><span class="feat-formula">T (°C)</span></td>
+          <td><span class="ftag ftag-phys">PHYSICAL</span> Kinetic energy term: higher temperature increases evaporation rate. Between-cycle r=0.32 (Step 04).</td>
+          <td style="color:var(--soil)">0.07</td>
+          <td style="color:var(--soil)">0.32</td>
+          <td style="color:var(--text-muted)" id="td-beta-temp">+0.02</td>
+        </tr>
+        <tr>
+          <td><strong>Cycle Phase φ</strong></td>
+          <td><span class="feat-formula">(soil − 280) / (800 − 280)</span></td>
+          <td><span class="ftag ftag-bio">BIOLOGICAL</span> ABA-stress proxy: as soil dries (φ→1) the plant progressively closes stomata, slowing the drying rate. Validated by 21% reduction in late-cycle drying rate (Step 03).</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--bio)" id="td-beta-phase">+14.77</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Panel 6C: Training setup + Ridge equation (grid-2) -->
+  <div class="grid-2 mt20" style="align-items:start">
+    <div class="card">
+      <div class="s6-tag" style="background:rgba(100,181,246,0.12);color:#64b5f6">
+        <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="2" x2="5" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="5" cy="7.5" r="0.8" fill="currentColor"/></svg>
+        Training Setup
+      </div>
+      <div class="chart-label">Training &amp; evaluation setup</div>
+      <div class="chart-title">Leave-One-Out Cross-Validation (LOO-CV) across 11 drying cycles</div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13px">
+        <span style="color:var(--text-muted);font-weight:600">Dataset</span><span>11 drying cycles · Feb 20 to Mar 19 · 1,399 hourly observations</span>
+        <span style="color:var(--text-muted);font-weight:600">Method</span><span><abbr title="Leave-One-Out Cross-Validation: for each cycle, train on the remaining 10 and predict the held-out one. Gives 11 independent predictions with maximum use of the available data.">LOO-CV</abbr>: each cycle tested once, trained on 10</span>
+        <span style="color:var(--text-muted);font-weight:600">Regularisation</span><span>Ridge α=0.1 (cycle model) · α=0.5 (hourly model)</span>
+        <span style="color:var(--text-muted);font-weight:600">No leakage</span><span>Cycle boundaries used as strict train/test splits</span>
+      </div>
+      <div style="margin-top:16px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">11 drying cycles, each tested exactly once</div>
+        <div class="loo-chips" id="loo-chips-display">
+          <!-- filled by JS -->
+        </div>
+        <div style="display:flex;gap:16px;margin-top:6px;font-size:11px;color:var(--text-muted)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(79,195,247,0.12);border:1px solid rgba(79,195,247,0.3)"></span>Training cycle</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(255,112,67,0.2);border:1px solid rgba(255,112,67,0.4)"></span>Test cycle (LOO)</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="s6-tag" style="background:rgba(206,147,216,0.12);color:var(--vpd)">
+        <svg width="10" height="10" viewBox="0 0 10 10"><text x="0" y="9" font-size="9" fill="currentColor" font-family="monospace">β</text></svg>
+        Fitted Equation
+      </div>
+      <div class="chart-label">Fitted Ridge equation: actual β coefficients</div>
+      <div class="chart-title">Trained on all 11 cycles (full dataset) · Evaluated via LOO-CV</div>
+      <div class="formula-display" style="margin-top:12px">
+        <div><span class="formula-term">Δsoil/h</span> =</div>
+        <div style="margin-left:16px"><span class="formula-neg formula-coeff" id="coeff-intercept">−12.30</span> <span style="color:var(--text-muted);font-size:11px">(intercept, night baseline)</span></div>
+        <div style="margin-left:16px"><span class="formula-pos formula-coeff" id="coeff-sl">+19.74</span> × <span class="formula-var">stomata(h) × light</span> <span style="color:var(--text-muted);font-size:11px">(biological transpiration)</span></div>
+        <div style="margin-left:16px"><span class="formula-pos formula-coeff" id="coeff-light">+31.44</span> × <span class="formula-var">light</span>/4095 <span style="color:var(--text-muted);font-size:11px">(surface evaporation)</span></div>
+        <div style="margin-left:16px"><span class="formula-pos formula-coeff" id="coeff-vpd">+3.44</span> × <span class="formula-var"><abbr title="Vapor Pressure Deficit in kPa">VPD</abbr></span> <span style="color:var(--text-muted);font-size:11px">(diffusion flux)</span></div>
+        <div style="margin-left:16px"><span class="formula-pos formula-coeff" id="coeff-temp">+0.02</span> × <span class="formula-var">temp</span> <span style="color:var(--text-muted);font-size:11px">(°C, kinetic term)</span></div>
+        <div style="margin-left:16px"><span class="formula-pos formula-coeff" id="coeff-phase">+14.77</span> × <span class="formula-var">φ</span> <span style="color:var(--text-muted);font-size:11px">(cycle phase, ABA proxy)</span></div>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-muted);line-height:1.7">
+        <strong style="color:var(--text-secondary)">Reading the equation:</strong> Stomata×Light (β=+19.74) and light alone (β=+31.44) dominate, confirming that radiation drives most water loss. The large negative intercept (−12.30) represents the dark-night baseline when all drivers are near zero. Cycle phase (β=+14.77) captures the ABA stress-induced stomata closure: as the soil dries, the phase term grows, but the closing stomata reduce transpiration, creating the self-limiting drying curve observed in Step 04.
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 6D: Evaluation A — dry rate prediction -->
+  <div class="card mt20">
+    <div class="s6-tag" style="background:rgba(129,199,132,0.12);color:var(--bio)">
+      <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="0,8 3,3 6,5 10,1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      Dry Rate Prediction
+    </div>
+    <div class="chart-label">Average prediction error: <span id="metric-mae-rate" style="color:var(--bio)">1.1</span> ADC/h. The model tracks the pattern.</div>
+    <div class="chart-title">Evaluation A: Δsoil/h · LOO cross-validation · n=11 cycles</div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;margin:16px 0">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="padding:16px 20px;background:rgba(129,199,132,0.07);border:1px solid rgba(129,199,132,0.2);border-radius:10px;text-align:center;min-width:120px">
+          <div style="font-size:36px;font-weight:800;color:var(--bio);letter-spacing:-1px;line-height:1" id="metric-mae-rate-big">1.1</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-top:6px">MAE (ADC/h)</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">cycle-average</div>
+        </div>
+        <div style="padding:12px 16px;background:rgba(79,195,247,0.06);border:1px solid rgba(79,195,247,0.15);border-radius:10px;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:var(--soil);letter-spacing:-1px;line-height:1" id="metric-r2-cycle">45%</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-top:4px">Cycle R²</div>
+        </div>
+        <div style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text-muted);line-height:1.6">
+          Hourly R² train: <span id="metric-r2-train" style="color:var(--text-secondary)">4.6%</span><br>
+          Hourly R² LOO: <span id="metric-r2-test" style="color:var(--text-secondary)">3.4%</span><br>
+          <span style="font-size:10px">Sensor noise ±15–20 ADC dominates<br>at 30-min resolution</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:12px">
+          At 30-min resolution, individual readings are drowned by sensor noise and hourly R² is only ~4%. But averaged across a full drying cycle, the noise cancels: the model correctly ranks which cycles dry faster and slower (<strong style="color:#dde3ef">cycle R²=45%</strong>, MAE=1.1 ADC/h). The scatter below shows that structure.
+        </div>
+        <div class="grid-2" style="gap:16px">
+          <div>
+            <div class="chart-subtitle">Predicted vs actual cycle-average rate (LOO, n=11)</div>
+            <div style="position:relative;height:200px"><canvas id="chartActualVsPred"></canvas></div>
+          </div>
+          <div>
+            <div class="chart-subtitle">Individual R² of each feature alone</div>
+            <div style="position:relative;height:200px"><canvas id="chartCoefficients"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 6E: Evaluation B — watering time prediction -->
+  <div class="card mt20">
+    <div class="s6-tag" style="background:rgba(255,112,67,0.12);color:var(--pump)">
+      <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1C5 1 2 5 2 7a3 3 0 006 0c0-2-3-6-3-6z" fill="currentColor" opacity=".8"/></svg>
+      Watering Time Prediction
+    </div>
+    <div class="chart-label">Does the model know when to water? <span id="wt-wins-label" style="color:var(--bio)">7 of 11</span> cycles beat the fixed schedule</div>
+    <div class="chart-title">Evaluation B: t̂ = (800 − s₀) / r̂ · LOO cross-validation · primary goal</div>
+    <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin:12px 0 16px">
+      This is the question the system was built to answer. The model predicts watering time by dividing the soil deficit to threshold by the predicted drying rate. Compared against a <strong style="color:#dde3ef">naive fixed schedule</strong> (always water every <span id="naive-mean-label">53</span>h, the dataset mean):
+    </div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;margin-bottom:16px">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="padding:16px 20px;background:rgba(255,112,67,0.07);border:1px solid rgba(255,112,67,0.25);border-radius:10px;text-align:center;min-width:120px">
+          <div style="font-size:36px;font-weight:800;color:var(--pump);letter-spacing:-1px;line-height:1" id="metric-mae-h-big">—</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-top:6px">MAE (hours)</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">watering time</div>
+        </div>
+        <div style="padding:12px 16px;background:rgba(129,199,132,0.06);border:1px solid rgba(129,199,132,0.2);border-radius:10px;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:var(--bio);letter-spacing:-1px;line-height:1" id="metric-median-err">—h</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-top:4px">Median error</div>
+        </div>
+        <div style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text-muted);line-height:1.7">
+          Model MAPE: <span id="metric-mape-wt" style="color:var(--text-secondary)">—%</span><br>
+          Naive MAPE: <span id="metric-naive-mape" style="color:var(--text-secondary)">—%</span><br>
+          <span style="font-size:10px">Naive = always water every mean(cycle h)</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:12px">
+          The bar chart shows actual vs predicted watering time per cycle. The <strong style="color:rgba(255,213,79,0.8)">dashed yellow line</strong> is the naive fixed schedule. Cycles where the model bar is closer to actual than the dashed line are model wins. The table highlights each outcome.
+        </div>
+        <div class="chart-subtitle">Predicted vs actual watering time per cycle (LOO-CV)</div>
+        <div style="position:relative;height:220px"><canvas id="chartWateringTime"></canvas></div>
+      </div>
+    </div>
+    <div style="overflow-x:auto;margin-top:4px">
+      <table id="validation-table" style="margin-top:0">
+        <thead><tr><th>Cycle</th><th>Actual (h)</th><th>Model (h)</th><th>Fixed (h)</th><th>Model err</th><th>Winner</th></tr></thead>
+        <tbody id="validation-tbody"></tbody>
+      </table>
+    </div>
+    <canvas id="chartValidation" style="display:none" height="1"></canvas>
+  </div>
+
+  <!-- Panel 6G: Vision -->
+  <div class="card mt20" style="background:linear-gradient(135deg,var(--bg-card) 0%,var(--bg-card-alt) 100%)">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div style="padding:28px 28px 28px 28px;border-right:1px solid var(--border)">
+        <div style="font-size:22px;font-weight:800;color:var(--text-muted);letter-spacing:-0.5px;margin-bottom:20px">TODAY</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div><div style="font-size:13px;font-weight:600;color:#dde3ef">1 soil sensor per plant</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Expensive at scale: cost grows linearly with plant count</div></div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div><div style="font-size:13px;font-weight:600;color:#dde3ef">Reactive only</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Watering triggered when soil is already dry. The plant may already be stressed.</div></div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div><div style="font-size:13px;font-weight:600;color:#dde3ef">Per-plant calibration</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Each sensor needs individual setup and maintenance</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:28px 28px 28px 28px;background:rgba(79,195,247,0.03)">
+        <div style="font-size:22px;font-weight:800;color:var(--soil);letter-spacing:-0.5px;margin-bottom:20px">TOMORROW</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div><div style="font-size:13px;font-weight:600;color:#dde3ef">One station per room</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Shared light, temp &amp; humidity sensor covers all plants in that space</div></div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div><div style="font-size:13px;font-weight:600;color:#dde3ef">Proactive notifications</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Alert before the plant is dry, based on the predicted watering time</div></div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div><div style="font-size:13px;font-weight:600;color:#dde3ef">Scales to many plants</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Train once on a reference plant, deploy model for all plants of same species</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════ CUSTOMER APP VIEW ═══════════════════════ -->
+<div id="app-view" style="display:none">
+
+  <!-- App header -->
+  <div class="app-hdr">
+    <div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#30d158;margin-bottom:6px">PlantCare</div>
+      <div style="font-size:26px;font-weight:800;letter-spacing:-.5px">My Fern</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:3px">Living room · Since 13 Feb 2026</div>
+    </div>
+    <div class="app-inner-tabs">
+      <button class="app-inner-tab active" id="itab-home" onclick="showAppTab('home')">Home</button>
+      <button class="app-inner-tab" id="itab-insights" onclick="showAppTab('insights')">Insights</button>
+    </div>
+  </div>
+
+  <!-- ── HOME PAGE ── -->
+  <div id="app-home" style="max-width:960px;margin:0 auto;padding:20px 24px 60px">
+
+    <!-- Hero -->
+    <div id="app-hero" class="app-hero warn">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start">
+        <div>
+          <div class="status-pill">
+            <span class="status-glow" id="hero-glow"></span>
+            <span id="hero-status-text" style="color:rgba(255,255,255,.8)">Water Tomorrow</span>
+          </div>
+          <div class="countdown-wrap">
+            <span class="cdown-num" id="cdown-h" style="color:#ff9f0a">19</span><span class="cdown-unit">h</span>
+            <span class="cdown-num" id="cdown-m" style="color:#ff9f0a">42</span><span class="cdown-unit">m</span>
+          </div>
+          <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:4px">until next watering</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.25)" id="hero-last-watered">Last watered 20h ago</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.18);margin-top:3px" id="hero-last-updated"></div>
+        </div>
+        <!-- Soil donut -->
+        <div style="text-align:center">
+          <svg width="88" height="88" viewBox="0 0 88 88">
+            <circle cx="44" cy="44" r="36" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9"/>
+            <circle id="donut-arc" cx="44" cy="44" r="36" fill="none" stroke="#ff9f0a" stroke-width="9"
+              stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="106"
+              transform="rotate(-90 44 44)" style="transition:stroke-dashoffset 1.2s ease,stroke .5s"/>
+            <text x="44" y="40" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="16" font-weight="800" font-family="Inter">
+              <tspan id="donut-pct">53%</tspan>
+            </text>
+            <text x="44" y="54" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="9" font-family="Inter">dry</text>
+          </svg>
+        </div>
+      </div>
+      <div class="soil-progress-wrap">
+        <div class="soil-progress-label">
+          <span>Freshly watered</span>
+          <span id="soil-pct-label">53% toward dry threshold</span>
+          <span>Needs water</span>
+        </div>
+        <div class="soil-track">
+          <div class="soil-fill warn" id="soil-bar-fill" style="width:53%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2-col grid: Alerts + Factors | History -->
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start">
+
+      <!-- LEFT: Alerts + Factors -->
+      <div>
+        <!-- Alerts -->
+        <div id="app-alerts-wrap">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px">Recommendations</div>
+          <div id="app-alerts"></div>
+        </div>
+
+        <!-- Active factors -->
+        <div style="margin-top:22px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px">Currently affecting your plant</div>
+          <div id="app-factors" class="factor-row"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: History + Quick stats -->
+      <div>
+        <div style="background:#0e0e18;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Watering history</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px" id="history-avg-label">Avg cycle: 53h</div>
+          <div id="app-history"></div>
+        </div>
+
+        <div style="background:#0e0e18;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px;margin-top:12px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px">This cycle vs average</div>
+          <div id="cycle-vs-avg"></div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- end app-home -->
+
+  <!-- ── INSIGHTS PAGE ── -->
+  <div id="app-insights-page" style="display:none;max-width:960px;margin:0 auto;padding:20px 24px 60px">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+
+      <!-- What's driving drying right now -->
+      <div class="insight-card">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">What drives drying this cycle</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Contribution of each factor to the predicted drying rate</div>
+        <div id="contrib-bars"></div>
+      </div>
+
+      <!-- Cycle duration history -->
+      <div class="insight-card">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Cycle duration history</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Hours between waterings across all 11 cycles</div>
+        <div id="cycle-bars"></div>
+      </div>
+
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;align-items:start">
+
+      <!-- Key insights -->
+      <div class="insight-card">
+        <div style="font-size:15px;font-weight:700;margin-bottom:18px">Key insights about your plant</div>
+        <div id="key-insights" style="display:flex;flex-direction:column;gap:12px"></div>
+      </div>
+
+      <!-- Prediction accuracy -->
+      <div class="insight-card">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">How accurate were predictions?</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Predicted vs actual watering time: last 5 cycles</div>
+        <div id="accuracy-list"></div>
+      </div>
+
+    </div>
+
+  </div><!-- end app-insights-page -->
+
+</div><!-- end app-view -->
+
+<!-- Pump Event Modal -->
+<div class="modal-overlay" id="pumpModal" onclick="if(event.target===this)closePumpModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title"> Watering Event</span>
+      <button class="modal-close" onclick="closePumpModal()">×</button>
+    </div>
+    <div class="modal-stats" id="modal-stats"></div>
+  </div>
+</div>
+
+<footer style="padding:40px 24px;text-align:center;color:var(--text-muted);font-size:12px;border-top:1px solid #1e2138">
+  ELEC70126 · Imperial College London · Plant IoT Dashboard · 2026
+</footer>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Global state
+// ─────────────────────────────────────────────────────────────────────────────
+let DATA = null;
+const charts = {};
+let currentRange = 'ALL';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function scrollTo(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+}
+
+function toggleCollapsible(btn) {
+  btn.classList.toggle('open');
+  const content = btn.nextElementSibling;
+  content.classList.toggle('open');
+}
+
+function rateToColor(rate) {
+  if (rate == null || isNaN(rate) || rate <= 0) return '#0f1117';
+  const dark   = [15, 17, 23];
+  const blue   = [79, 195, 247];
+  const yellow = [255, 213, 79];
+  let r, g, b;
+  if (rate <= 15) {
+    const t = rate / 15;
+    r = Math.round(dark[0] + (blue[0]-dark[0])*t);
+    g = Math.round(dark[1] + (blue[1]-dark[1])*t);
+    b = Math.round(dark[2] + (blue[2]-dark[2])*t);
+  } else {
+    const t = Math.min((rate - 15) / 10, 1);
+    r = Math.round(blue[0] + (yellow[0]-blue[0])*t);
+    g = Math.round(blue[1] + (yellow[1]-blue[1])*t);
+    b = Math.round(blue[2] + (yellow[2]-blue[2])*t);
+  }
+  return `rgb(${r},${g},${b})`;
+}
+
+function pval(p) {
+  if (p < 0.001) return '***';
+  if (p < 0.01)  return '**';
+  if (p < 0.05)  return '*';
+  return 'ns';
+}
+
+function linReg(xs, ys) {
+  const n = xs.length;
+  let sx=0,sy=0,sxy=0,sx2=0;
+  for (let i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxy+=xs[i]*ys[i];sx2+=xs[i]*xs[i];}
+  const m = (n*sxy - sx*sy) / (n*sx2 - sx*sx);
+  const b = (sy - m*sx) / n;
+  return {m, b};
+}
+
+function lerpColor(c1, c2, t) {
+  return [
+    Math.round(c1[0] + (c2[0]-c1[0])*t),
+    Math.round(c1[1] + (c2[1]-c1[1])*t),
+    Math.round(c1[2] + (c2[2]-c1[2])*t),
+  ];
+}
+
+function cycleBlue(i, n) {
+  const cold = [30, 80, 160];
+  const warm = [79, 195, 247];
+  const c = lerpColor(cold, warm, i/(n-1));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom plugins
+// ─────────────────────────────────────────────────────────────────────────────
+const nightPlugin = {
+  id: 'nightShading',
+  beforeDraw(chart) {
+    const { ctx, chartArea, scales } = chart;
+    if (!scales.x || !chartArea) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.015)';
+    const xMin = scales.x.min, xMax = scales.x.max;
+    const start = new Date(xMin); start.setHours(0,0,0,0);
+    const end   = new Date(xMax + 86400000);
+    for (let d = new Date(start); d < end; d.setDate(d.getDate()+1)) {
+      for (const [sh, eh] of [[0,7],[20,24]]) {
+        const ns = new Date(d); ns.setHours(sh,0,0,0);
+        const ne = new Date(d); ne.setHours(eh,0,0,0);
+        const x1 = Math.max(scales.x.getPixelForValue(ns.getTime()), chartArea.left);
+        const x2 = Math.min(scales.x.getPixelForValue(ne.getTime()), chartArea.right);
+        if (x2 > x1) ctx.fillRect(x1, chartArea.top, x2-x1, chartArea.bottom-chartArea.top);
+      }
+    }
+    ctx.restore();
+  }
+};
+
+const timelineAnnotPlugin = {
+  id: 'timelineAnnot',
+  afterDraw(chart) {
+    const {ctx, chartArea, scales} = chart;
+    if (!scales.x || !scales.yLeft) return;
+    const annots = [
+      { ts: '2026-02-19T13:00:00', soil: 620, color: 'rgba(255,213,79,0.95)', lines: [' Stomata open', '→ fast drying'] },
+      { ts: '2026-02-19T02:00:00', soil: 550, color: 'rgba(100,181,246,0.9)', lines: [' Stomata closed', '→ slow drying'] },
+    ];
+    ctx.save();
+    ctx.font = 'bold 10px Inter';
+    annots.forEach(a => {
+      const x = scales.x.getPixelForValue(new Date(a.ts).getTime());
+      if (x < chartArea.left + 30 || x > chartArea.right - 30) return;
+      const y = scales.yLeft.getPixelForValue(a.soil);
+      ctx.fillStyle = a.color;
+      ctx.textAlign = 'center';
+      a.lines.forEach((line, i) => ctx.fillText(line, x, y - 18 + i * 13));
+      ctx.strokeStyle = a.color; ctx.lineWidth = 1; ctx.setLineDash([3, 2]);
+      ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 16); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+    ctx.restore();
+  }
+};
+
+const pumpLinesPlugin = {
+  id: 'pumpLines',
+  afterDatasetsDraw(chart) {
+    if (!DATA) return;
+    const { ctx, chartArea, scales } = chart;
+    if (!scales.x) return;
+    ctx.save();
+    DATA.timeseries.filter(d=>d.pump_event===1).forEach(d => {
+      const x = scales.x.getPixelForValue(new Date(d.ts).getTime());
+      if (x < chartArea.left || x > chartArea.right) return;
+      ctx.strokeStyle = 'rgba(255,112,67,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,112,67,0.8)';
+      ctx.beginPath();
+      ctx.moveTo(x, chartArea.top+10); ctx.lineTo(x-5, chartArea.top); ctx.lineTo(x+5, chartArea.top);
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.restore();
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main init
+// ─────────────────────────────────────────────────────────────────────────────
+async function main() {
+  Chart.defaults.color = '#8888a4';
+  Chart.defaults.borderColor = '#1a1d30';
+  Chart.defaults.font.family = 'Inter';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.plugins.legend.display = false;
+  Chart.defaults.plugins.tooltip.backgroundColor = '#1c1f2e';
+  Chart.defaults.plugins.tooltip.borderColor = '#252840';
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.elements.point.radius = 0;
+  Chart.defaults.elements.point.hoverRadius = 4;
+  Chart.defaults.elements.line.borderWidth = 2;
+  Chart.defaults.elements.bar.borderRadius = 4;
+  Chart.defaults.scale.grid.color = '#1a1d30';
+
+  if (window.__ANALYSIS__) {
+    DATA = window.__ANALYSIS__;
+    initDashboard();
+  } else {
+    document.body.innerHTML = `<div style="padding:60px;text-align:center;color:#ef5350;font-family:Inter,sans-serif"><h2>Failed to load data/analysis.js</h2><p style="color:#8888a4;margin-top:12px">Run: <code>python3 scripts/analysis_export.py</code></p><p style="color:#55556e;margin-top:8px;font-size:13px">Then reload the page.</p></div>`;
+  }
+}
+
+function initDashboard() {
+  populateMeta();
+  buildTimeline();
+  buildBoxPlots();
+  buildCycleOverlay();
+  buildCorrelationScatters();
+  buildCorrBars();
+  buildDayNight();
+  buildLightAnalysis();
+  buildStomataStress();
+  buildVpdBins();
+  buildHeating();
+  buildRetention();
+  // buildDryingLaw();
+  buildCoefficients();
+  buildActualVsPredicted();
+  buildValidation();
+  buildWateringTime();
+  setupNav();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Meta / KPI
+// ─────────────────────────────────────────────────────────────────────────────
+function populateMeta() {
+  const m = DATA.meta;
+  const d0 = new Date(m.date_range[0]), d1 = new Date(m.date_range[1]);
+  const days = Math.round((d1-d0)/86400000);
+  document.getElementById('kpi-days').textContent = days;
+  document.getElementById('kpi-readings').textContent = m.n_points.toLocaleString();
+  document.getElementById('kpi-waterings').textContent = m.n_pump_events;
+  document.getElementById('kpi-temp').textContent = m.avg_temp.toFixed(1);
+  document.getElementById('kpi-cycle').innerHTML = `${m.avg_cycle_duration_h}<span style="font-size:18px;font-weight:600;color:var(--text-secondary)">&nbsp;h avg cycle</span>`;
+
+  // Day/night
+  const dp = DATA.daily_pattern.ttest;
+  document.getElementById('dn-ratio').textContent = dp.ratio + '×';
+  document.getElementById('dn-day-val').textContent = dp.day_mean.toFixed(1) + ' ADC/h';
+  document.getElementById('dn-night-val').textContent = dp.night_mean.toFixed(1) + ' ADC/h';
+  document.getElementById('dn-ttest').innerHTML =
+    `t = ${dp.t} &nbsp; p < ${dp.p < 0.001 ? '0.001' : dp.p.toFixed(4)} &nbsp; <strong style="color:var(--bio)">${pval(dp.p)}</strong>`;
+
+  // Light ratio
+  document.getElementById('light-ratio-text').textContent = DATA.light_analysis.binned.ratio + '×';
+  document.getElementById('lag-caption').textContent = DATA.light_analysis.peak_lag_h + 'h';
+
+  // VPD ratio
+  document.getElementById('vpd-ratio-text').textContent = DATA.vpd_binned.ratio + '×';
+
+  // Stomata badge
+  const ss = DATA.stomata_stress;
+  document.getElementById('stomata-badge').textContent = `Avg −${ss.avg_reduction}% in late phase`;
+
+
+  // Section 5: populate finding cards with real data
+  const hm5 = DATA.prediction_model.hourly_model.coefficients;
+  const ss5 = DATA.stomata_stress;
+  const dp5 = DATA.daily_pattern.ttest;
+  function s5set(id, v) { const el=document.getElementById(id); if(el) el.textContent=v; }
+  s5set('s5-beta-sl',    (hm5.stomata_x_light>=0?'+':'')+hm5.stomata_x_light.toFixed(2));
+  s5set('s5-beta-phase', (hm5.cycle_phase    >=0?'+':'')+hm5.cycle_phase.toFixed(2));
+  s5set('s5-beta-vpd',   (hm5.vpd            >=0?'+':'')+hm5.vpd.toFixed(2));
+  s5set('s5-beta-light', (hm5.light          >=0?'+':'')+hm5.light.toFixed(2));
+  s5set('s5-beta-temp',  (hm5.temp           >=0?'+':'')+hm5.temp.toFixed(2));
+  s5set('s5-aba-pct',    ss5.avg_reduction);
+  s5set('s5-dn-ratio',   dp5.ratio + '×');
+  s5set('s5-day-rate',   dp5.day_mean.toFixed(1));
+  s5set('s5-night-rate', dp5.night_mean.toFixed(1));
+  s5set('s5-vpd-ratio',  DATA.vpd_binned.ratio + '×');
+  s5set('s5-light-ratio',DATA.light_analysis.binned.ratio + '×');
+
+  // Model metrics + coefficients
+  const pm = DATA.prediction_model.cycle_model;
+  const hm = DATA.prediction_model.hourly_model;
+  // Eval A: hourly R² + cycle-level R² + MAE
+  document.getElementById('metric-r2-train').textContent = (hm.r2_train*100).toFixed(1) + '%';
+  document.getElementById('metric-r2-test').textContent  = (hm.r2_test *100).toFixed(1) + '%';
+  if (document.getElementById('metric-r2-all')) document.getElementById('metric-r2-all').textContent = (hm.r2*100).toFixed(1) + '%';
+  // Cycle-level R² computed from validation_all scatter
+  const va = pm.validation_all;
+  const meanAct = va.reduce((s,v)=>s+v.actual,0)/va.length;
+  const ssTot = va.reduce((s,v)=>s+(v.actual-meanAct)**2,0);
+  const ssRes = va.reduce((s,v)=>s+(v.actual-v.predicted)**2,0);
+  const r2cycle = 1 - ssRes/ssTot;
+  const r2CycleEl = document.getElementById('metric-r2-cycle');
+  if (r2CycleEl) r2CycleEl.textContent = (r2cycle*100).toFixed(0) + '%';
+  // MAE on rates
+  const maeRateEl = document.getElementById('metric-mae-rate');
+  if (maeRateEl && pm.mae != null) maeRateEl.textContent = pm.mae.toFixed(1);
+  const maeRateBigEl = document.getElementById('metric-mae-rate-big');
+  if (maeRateBigEl && pm.mae != null) maeRateBigEl.textContent = pm.mae.toFixed(1);
+  // Eval B: watering-time MAPE (computed from actual durations & predicted rates)
+  if (document.getElementById('metric-mape')) document.getElementById('metric-mape').textContent = pm.mape.toFixed(1) + '%';
+  // Fitted equation β coefficients
+  const c = hm.coefficients;
+  function fmtCoeff(v) { return (v >= 0 ? '+' : '') + v.toFixed(2); }
+  document.getElementById('coeff-intercept').textContent = fmtCoeff(c.intercept);
+  document.getElementById('coeff-intercept').className   = c.intercept < 0 ? 'formula-neg formula-coeff' : 'formula-pos formula-coeff';
+  document.getElementById('coeff-sl').textContent    = fmtCoeff(c.stomata_x_light);
+  document.getElementById('coeff-light').textContent = fmtCoeff(c.light);
+  document.getElementById('coeff-vpd').textContent   = fmtCoeff(c.vpd);
+  document.getElementById('coeff-temp').textContent  = fmtCoeff(c.temp);
+  document.getElementById('coeff-phase').textContent = fmtCoeff(c.cycle_phase);
+  // Feature table β cells
+  document.getElementById('td-beta-sl').textContent    = fmtCoeff(c.stomata_x_light);
+  document.getElementById('td-beta-light').textContent = fmtCoeff(c.light);
+  document.getElementById('td-beta-vpd').textContent   = fmtCoeff(c.vpd);
+  document.getElementById('td-beta-temp').textContent  = fmtCoeff(c.temp);
+  document.getElementById('td-beta-phase').textContent = fmtCoeff(c.cycle_phase);
+  // LOO chips
+  buildLooChips();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 1: Timeline (multi-variable toggle)
+// ─────────────────────────────────────────────────────────────────────────────
+function buildTimeline() {
+  const ts = DATA.timeseries;
+
+  // Variable definitions: soil on left axis (raw), rest normalized 0–100% on right axis
+  const varDefs = [
+    { label:'Soil moisture (ADC)', key:'soil2',           color:'rgba(79,195,247,0.9)',  axis:'yLeft',  fill:true,  unit:'ADC' },
+    { label:'Temperature (°C)',    key:'temp_c',          color:'rgba(239,83,80,0.8)',   axis:'yRight', fill:false, unit:'°C',  min:10, max:40 },
+    { label:'Humidity (%)',        key:'hum_pct',         color:'rgba(100,181,246,0.8)', axis:'yRight', fill:false, unit:'%',   min:0,  max:100 },
+    { label:'Light intensity',     key:'light_intensity', color:'rgba(255,213,79,0.8)',  axis:'yRight', fill:false, unit:'ADC', min:0,  max:4095 },
+  ];
+
+  // Pump events as vertical band markers (via plugin)
+  const pumpTimes = ts.filter(d=>d.pump_event===1).map(d=>new Date(d.ts).getTime());
+
+  const pumpBandPlugin = {
+    id:'pumpBands',
+    beforeDatasetsDraw(chart) {
+      const {ctx:c,scales,chartArea}=chart;
+      if(!scales.x) return;
+      c.save();
+      pumpTimes.forEach(pt=>{
+        const x=scales.x.getPixelForValue(pt);
+        if(x<chartArea.left||x>chartArea.right) return;
+        c.fillStyle='rgba(255,112,67,0.12)';
+        c.fillRect(x-4,chartArea.top,8,chartArea.bottom-chartArea.top);
+        c.strokeStyle='rgba(255,112,67,0.55)';
+        c.lineWidth=1.5;
+        c.setLineDash([3,2]);
+        c.beginPath();c.moveTo(x,chartArea.top);c.lineTo(x,chartArea.bottom);c.stroke();
+        c.setLineDash([]);
+      });
+      c.restore();
+    }
+  };
+
+  function norm(v, vd) {
+    if (vd.axis === 'yLeft') return v;
+    return ((v - vd.min) / (vd.max - vd.min)) * 100;
+  }
+
+  const datasets = varDefs.map((vd, i) => ({
+    label: vd.label,
+    data: ts.map(d => ({ x: new Date(d.ts).getTime(), y: norm(d[vd.key], vd) })),
+    borderColor: vd.color,
+    backgroundColor: i===0
+      ? (ctx) => { const g=ctx.chart.ctx.createLinearGradient(0,0,0,300); g.addColorStop(0,'rgba(79,195,247,0.3)'); g.addColorStop(1,'rgba(79,195,247,0.01)'); return g; }
+      : vd.color.replace('0.8','0.08').replace('0.85','0.08').replace('0.9','0.08'),
+    fill: vd.fill,
+    tension: 0.2,
+    borderWidth: i===0 ? 2 : 1.5,
+    borderDash: i===0 ? [] : [4,3],
+    yAxisID: vd.axis,
+    pointRadius: 0,
+    hidden: i !== 0,  // only soil visible by default
+    _unit: vd.unit, _min: vd.min, _max: vd.max,
+  }));
+
+  const tooltipLabels = varDefs.map((vd, i) => (item) => {
+    const raw = ts[item.dataIndex];
+    if (!raw) return '';
+    const val = raw[vd.key];
+    return ` ${vd.label}: ${typeof val==='number' ? val.toFixed(vd.unit==='ADC'?0:1) : val} ${vd.unit}`;
+  });
+
+  const ctx = document.getElementById('chartTimeline').getContext('2d');
+  charts.timeline = new Chart(ctx, {
+    type: 'line',
+    plugins: [nightPlugin, pumpBandPlugin],
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { color:'#8888a4', boxWidth:14, font:{size:12},
+          filter: (item, data) => !data.datasets[item.datasetIndex].hidden } },
+        tooltip: { callbacks: {
+          title: items => new Date(items[0].raw.x).toLocaleString('en-GB'),
+          label: item => tooltipLabels[item.datasetIndex](item),
+        }}
+      ,
+        zoom: { pan: { enabled:true, mode:'x' }, zoom: { wheel:{enabled:true}, pinch:{enabled:true}, mode:'x' } }
+      },
+      scales: {
+        x: { type:'time', time:{tooltipFormat:'dd MMM HH:mm'}, ticks:{maxTicksLimit:10} },
+        yLeft: {
+          type:'linear', position:'left',
+          title:{display:true, text:'Soil (ADC)', color:'rgba(79,195,247,0.7)'},
+          min:150, max:1050,
+          ticks:{color:'rgba(79,195,247,0.6)'}
+        },
+        yRight: {
+          type:'linear', position:'right',
+          title:{display:false, text:'% of range'},
+          min:0, max:100,
+          grid:{display:false},
+          ticks:{color:'#8888a4', callback:v=>`${v}%`}
+        }
+      }
+    }
+  });
+
+  // Click handler for pump events
+  document.getElementById('chartTimeline').addEventListener('click', e => {
+    const rect = e.target.getBoundingClientRect();
+    const xRel = e.clientX - rect.left;
+    const scales = charts.timeline.scales;
+    for (const pt of pumpTimes) {
+      const px = scales.x.getPixelForValue(pt);
+      if (Math.abs(xRel - px) < 20) { showPumpModal(pt, 0); return; }
+    }
+  });
+}
+
+function toggleVar(btn) {
+  btn.classList.toggle('active');
+  const idx = +btn.dataset.idx;
+  const ds = charts.timeline.data.datasets[idx];
+  ds.hidden = !ds.hidden;
+  // Show/hide right axis label
+  const anyRight = charts.timeline.data.datasets.slice(1).some(d=>!d.hidden);
+  charts.timeline.options.scales.yRight.display = anyRight;
+  charts.timeline.update();
+}
+
+function setRange(range, btn) {
+  currentRange = range;
+  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if (!charts.timeline) return;
+  const ts = DATA.timeseries;
+  const allTs = ts.map(d=>new Date(d.ts).getTime());
+  const maxT = Math.max(...allTs);
+  let minT;
+  if (range === '2W') minT = maxT - 14*86400000;
+  else if (range === '1M') minT = maxT - 30*86400000;
+  else minT = Math.min(...allTs);
+  charts.timeline.zoomScale('x', {min:minT, max:maxT}, 'none');
+}
+
+function showPumpModal(ts, idx) {
+  // Find which cycle this belongs to
+  const cycles = DATA.drying_cycles;
+  const cycle = cycles.find(c => {
+    const cs = new Date(c.start_ts).getTime();
+    return Math.abs(cs - ts) < 3600000;
+  });
+  if (!cycle) return;
+  document.getElementById('modal-title').textContent = ` Watering Event: Cycle ${cycle.cycle_num}`;
+  document.getElementById('modal-stats').innerHTML = `
+    <div class="modal-stat"><div class="modal-stat-label">Duration</div><div class="modal-stat-value" style="color:var(--soil)">${cycle.duration_h}h</div></div>
+    <div class="modal-stat"><div class="modal-stat-label">Avg Rate</div><div class="modal-stat-value" style="color:var(--rate)">${cycle.rate_adc_h} ADC/h</div></div>
+    <div class="modal-stat"><div class="modal-stat-label">Avg Temp</div><div class="modal-stat-value" style="color:var(--temp)">${cycle.avg_temp}°C</div></div>
+    <div class="modal-stat"><div class="modal-stat-label">Avg Light</div><div class="modal-stat-value" style="color:var(--light)">${Math.round(cycle.avg_light)}</div></div>
+    <div class="modal-stat"><div class="modal-stat-label">Avg VPD</div><div class="modal-stat-value" style="color:var(--vpd)">${cycle.avg_vpd} kPa</div></div>
+    <div class="modal-stat"><div class="modal-stat-label">τ (time const.)</div><div class="modal-stat-value">${cycle.tau_h || '—'}h</div></div>
+  `;
+  document.getElementById('pumpModal').classList.add('open');
+}
+function closePumpModal() { document.getElementById('pumpModal').classList.remove('open'); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 1: Box plots
+// ─────────────────────────────────────────────────────────────────────────────
+function buildBoxPlots() {
+  const ts = DATA.timeseries;
+  const vars = [
+    { key:'soil2',           label:'Soil',     unit:'ADC', color:'#4fc3f7' },
+    { key:'temp_c',          label:'Temp',     unit:'°C',  color:'#ef5350' },
+    { key:'hum_pct',         label:'Humidity', unit:'%',   color:'#64b5f6' },
+    { key:'light_intensity', label:'Light',    unit:'ADC', color:'#ffd54f' },
+  ];
+
+  function stats(vals) {
+    const s = [...vals].filter(v=>v!=null&&!isNaN(v)).sort((a,b)=>a-b);
+    const n = s.length;
+    return { min:s[0], q1:s[Math.floor(n*.25)], med:s[Math.floor(n*.5)],
+             q3:s[Math.floor(n*.75)], max:s[n-1],
+             mean: s.reduce((a,v)=>a+v,0)/n };
+  }
+
+  const grid = document.getElementById('bxp-grid');
+  vars.forEach(v => {
+    const st = stats(ts.map(d=>d[v.key]));
+    const card = document.createElement('div');
+    card.className = 'bxp-card';
+
+    // SVG box plot with Y-axis
+    const W=110, H=90, MT=10, MB=8, AX=28; // AX = left margin for axis
+    const range = st.max - st.min || 1;
+    const py = val => MT + (H - MT - MB) * (1 - (val - st.min) / range);
+    const cx = AX + (W - AX) / 2, BW = 28;
+    const yq1=py(st.q1), yq3=py(st.q3), ymed=py(st.med);
+    const ymin=py(st.min), ymax=py(st.max), ymean=py(st.mean);
+    const capW = BW/3;
+
+    // Y-axis ticks: min, median, max
+    const ticks = [
+      { val: st.min, y: ymin },
+      { val: st.med, y: ymed },
+      { val: st.max, y: ymax },
+    ];
+    const fmt2 = n => Math.abs(n) >= 100 ? Math.round(n) : Math.abs(n) >= 10 ? n.toFixed(1) : n.toFixed(2);
+    const axisTicks = ticks.map(t =>
+      `<line x1="${AX-3}" y1="${t.y}" x2="${AX}" y2="${t.y}" stroke="#55556e" stroke-width="1"/>
+       <text x="${AX-5}" y="${t.y+3.5}" text-anchor="end" font-size="8" fill="#55556e" font-family="Inter,monospace">${fmt2(t.val)}</text>`
+    ).join('');
+
+    const svg = `<svg width="${W}" height="${H}" style="display:block;margin:0 auto">
+      <!-- Y axis line -->
+      <line x1="${AX}" y1="${MT}" x2="${AX}" y2="${H-MB}" stroke="#2a2d45" stroke-width="1"/>
+      ${axisTicks}
+      <!-- whiskers -->
+      <line x1="${cx}" y1="${ymax}" x2="${cx}" y2="${yq3}" stroke="${v.color}" stroke-width="1.5" opacity="0.55"/>
+      <line x1="${cx}" y1="${yq1}" x2="${cx}" y2="${ymin}" stroke="${v.color}" stroke-width="1.5" opacity="0.55"/>
+      <line x1="${cx-capW}" y1="${ymax}" x2="${cx+capW}" y2="${ymax}" stroke="${v.color}" stroke-width="1.5" opacity="0.6"/>
+      <line x1="${cx-capW}" y1="${ymin}" x2="${cx+capW}" y2="${ymin}" stroke="${v.color}" stroke-width="1.5" opacity="0.6"/>
+      <!-- IQR box -->
+      <rect x="${cx-BW/2}" y="${yq3}" width="${BW}" height="${Math.max(yq1-yq3,2)}"
+            fill="${v.color}" fill-opacity="0.13" stroke="${v.color}" stroke-opacity="0.45" stroke-width="1" rx="2"/>
+      <!-- median -->
+      <line x1="${cx-BW/2}" y1="${ymed}" x2="${cx+BW/2}" y2="${ymed}" stroke="${v.color}" stroke-width="2.5"/>
+      <!-- mean dot -->
+      <circle cx="${cx}" cy="${ymean}" r="3.5" fill="${v.color}" opacity="0.85"/>
+    </svg>`;
+
+    const fmt = n => {
+      if (typeof n !== 'number') return n;
+      if (Math.abs(n) >= 100) return Math.round(n);
+      if (Math.abs(n) >= 10)  return n.toFixed(1);
+      return n.toFixed(2);
+    };
+
+    card.innerHTML = `
+      <div class="bxp-label" style="color:${v.color}">${v.label}</div>
+      ${svg}
+      <div class="bxp-stats">
+        <span>min</span><span>med</span><span>max</span>
+        <span class="bxp-stat-val">${fmt(st.min)}</span>
+        <span class="bxp-stat-val" style="color:${v.color}">${fmt(st.med)}</span>
+        <span class="bxp-stat-val">${fmt(st.max)}</span>
+        <span style="grid-column:1/4;margin-top:3px;font-size:10px">
+          Q1 ${fmt(st.q1)} · Q3 ${fmt(st.q3)}<br>mean ${fmt(st.mean)} <span style="opacity:.6">${v.unit}</span>
+        </span>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 2: Cycle Overlay
+// ─────────────────────────────────────────────────────────────────────────────
+function buildCycleOverlay() {
+  const cycles = DATA.drying_cycles;
+  const N = 80;
+
+  function interp(timeArr, soilArr) {
+    const out = [];
+    for (let i=0;i<N;i++) {
+      const t = i/(N-1);
+      let j=0;
+      while (j < timeArr.length-1 && timeArr[j+1] < t) j++;
+      if (j >= timeArr.length-1) { out.push(soilArr[soilArr.length-1]); continue; }
+      const frac = (timeArr[j+1]-timeArr[j]) > 0 ? (t-timeArr[j])/(timeArr[j+1]-timeArr[j]) : 0;
+      out.push(soilArr[j] + (soilArr[j+1]-soilArr[j])*frac);
+    }
+    return out;
+  }
+
+  const xs = Array.from({length:N},(_,i)=>i/(N-1));
+  const interped = cycles.map(c => interp(c.normalized_time, c.normalized_soil));
+  const meanLine = xs.map((_,i) => interped.reduce((s,c)=>s+c[i],0)/interped.length);
+
+  const datasets = cycles.map((c,i) => ({
+    data: xs.map((x,j) => ({x, y: interped[i][j]})),
+    borderColor: cycleBlue(i, cycles.length),
+    borderWidth: 1.2, fill: false, tension: 0.3, pointRadius: 0,
+  }));
+  datasets.push({
+    data: xs.map((x,i) => ({x, y: meanLine[i]})),
+    borderColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 3, fill: false, tension: 0.3, pointRadius: 0,
+    label: 'Mean',
+  });
+
+  const ctx = document.getElementById('chartCycleOverlay').getContext('2d');
+  charts.cycleOverlay = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: true, labels: { filter: i => i.text === 'Mean', color: '#eeeef2' } },
+        tooltip: {
+          callbacks: {
+            title: i => `Progress: ${(i[0].raw.x*100).toFixed(0)}%`,
+            label: i => ` Soil: ${(i.raw.y*100).toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        x: { type:'linear', min:0, max:1, title:{display:true,text:'Normalized time (0=watered, 1=pump)'} },
+        y: { min:0, max:1.05, title:{display:true,text:'Normalized soil level'} }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 2: Correlation Scatters
+// ─────────────────────────────────────────────────────────────────────────────
+function buildCorrelationScatters() {
+  // Point-to-point: subsample timeseries
+  const ts = DATA.timeseries.filter(d=>d.soil_rate!=null && Math.abs(d.soil_rate)<50);
+  const step = Math.max(1, Math.floor(ts.length/400));
+  const ptData = ts.filter((_,i)=>i%step===0).map(d=>({x:d.light_intensity, y:d.soil_rate}));
+  const ptR = DATA.point_correlations.light_intensity.r;
+  document.getElementById('pt-r-badge').textContent = `r = ${ptR.toFixed(2)}`;
+
+  // Regression line for point data
+  const xs = ptData.map(d=>d.x), ys = ptData.map(d=>d.y);
+  const regPt = linReg(xs, ys);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const regLinePoint = [{x:xMin,y:regPt.m*xMin+regPt.b},{x:xMax,y:regPt.m*xMax+regPt.b}];
+
+  const ctxPt = document.getElementById('chartScatterPoint').getContext('2d');
+  charts.scatterPoint = new Chart(ctxPt, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { type:'scatter', data: ptData, backgroundColor:'rgba(100,100,150,0.3)', pointRadius:2, pointHoverRadius:4 },
+        { type:'line', data: regLinePoint, borderColor:'rgba(100,100,200,0.6)', borderWidth:2, pointRadius:0, fill:false }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { tooltip: { callbacks: { label: i => ` Light: ${i.raw.x}, Rate: ${i.raw.y.toFixed(1)}` } } },
+      scales: {
+        x: { title:{display:true,text:'Light intensity'} },
+        y: { title:{display:true,text:'Drying rate (ADC/h)'} }
+      }
+    }
+  });
+
+  // Between-cycle scatter (light)
+  const bc = DATA.between_cycle_correlations.avg_light;
+  document.getElementById('cycle-r-badge').textContent = `r = ${bc.r.toFixed(2)}`;
+  const cycleData = bc.x.map((x,i)=>({x, y:bc.y[i], cycle:bc.cycle_nums[i]}));
+  const regCyc = linReg(bc.x, bc.y);
+  const cxMin = Math.min(...bc.x), cxMax = Math.max(...bc.x);
+
+  const ctxCyc = document.getElementById('chartScatterCycle').getContext('2d');
+  charts.scatterCycle = new Chart(ctxCyc, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          type: 'scatter',
+          data: cycleData,
+          backgroundColor: cycleData.map((_,i)=>cycleBlue(i, cycleData.length)),
+          pointRadius: 8, pointHoverRadius: 10,
+        },
+        {
+          type:'line',
+          data:[{x:cxMin,y:regCyc.m*cxMin+regCyc.b},{x:cxMax,y:regCyc.m*cxMax+regCyc.b}],
+          borderColor:'rgba(255,213,79,0.7)', borderWidth:2, pointRadius:0, fill:false, borderDash:[4,4]
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: { callbacks: { label: i => ` Cycle ${i.raw.cycle}: Light=${i.raw.x}, Rate=${i.raw.y}` } }
+      },
+      scales: {
+        x: { title:{display:true,text:'Avg light (ADC)'} },
+        y: { title:{display:true,text:'Avg drying rate (ADC/h)'} }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 2: Correlation Bars
+// ─────────────────────────────────────────────────────────────────────────────
+function buildCorrBars() {
+  const bc = DATA.between_cycle_correlations;
+  const pc = DATA.point_correlations;
+
+  const vars = [
+    { label:'Light',       cycleR: bc.avg_light.r, pointR: pc.light_intensity.r, color:'#ffd54f' },
+    { label:'Humidity',    cycleR: bc.avg_hum.r,   pointR: pc.hum_pct.r,         color:'#64b5f6' },
+    { label:'Temperature', cycleR: bc.avg_temp.r,  pointR: pc.temp_c.r,          color:'#ef5350' },
+  ];
+
+  // Layout
+  const SVG_W  = 560;
+  const LBL_W  = 90;   // left label column
+  const TAG_W  = 46;   // right tag column ("cycle" / "hourly")
+  const BAR_W  = SVG_W - LBL_W - TAG_W;
+  const CENTER = LBL_W + BAR_W / 2;  // x pixel of r=0
+  const MAX_R  = 0.65;
+  const BAR_H  = 10;
+  const ROW_H  = 58;   // height per variable (holds 2 bars + gap + divider)
+  const H      = vars.length * ROW_H + 30;
+
+  const px  = r => CENTER + (r / MAX_R) * (BAR_W / 2);  // r → absolute x
+  const fmt = r => (r >= 0 ? '+' : '−') + Math.abs(r).toFixed(2);
+
+  const bar = (r, yTop, color, solid) => {
+    const x0 = Math.min(CENTER, px(r));
+    const w  = Math.abs(px(r) - CENTER);
+    const op = solid ? 0.85 : 0.28;
+    // value label: just outside bar tip, clamped so it never leaves SVG
+    const rawLx = r >= 0 ? px(r) + 4 : px(r) - 4;
+    const lx     = Math.min(Math.max(rawLx, LBL_W + 2), SVG_W - TAG_W - 2);
+    const anchor = r >= 0 ? 'start' : 'end';
+    const lop    = solid ? 0.9 : 0.5;
+    return `<rect x="${x0}" y="${yTop}" width="${w}" height="${BAR_H}" rx="3" fill="${color}" opacity="${op}"/>
+      <text x="${lx}" y="${yTop + BAR_H - 1}" font-size="10" fill="${color}" opacity="${lop}" text-anchor="${anchor}">${fmt(r)}</text>`;
+  };
+
+  let rows = '';
+  vars.forEach((v, i) => {
+    const y0  = i * ROW_H + 4;
+    const yC  = y0;              // cycle bar top
+    const yP  = y0 + BAR_H + 5; // hourly bar top
+    const yMid = y0 + BAR_H + 2;
+
+    rows += `<g>
+      <text x="${LBL_W - 8}" y="${yMid}" font-size="12" fill="#b0b8c8" text-anchor="end" dominant-baseline="middle">${v.label}</text>
+      ${bar(v.cycleR, yC, v.color, true)}
+      <text x="${SVG_W - TAG_W + 4}" y="${yC + BAR_H - 1}" font-size="9" fill="rgba(255,255,255,0.3)">cycle</text>
+      ${bar(v.pointR, yP, v.color, false)}
+      <text x="${SVG_W - TAG_W + 4}" y="${yP + BAR_H - 1}" font-size="9" fill="rgba(255,255,255,0.2)">hourly</text>
+      <line x1="${LBL_W}" x2="${SVG_W - TAG_W}" y1="${y0 + ROW_H - 2}" y2="${y0 + ROW_H - 2}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+    </g>`;
+  });
+
+  const ticks = [-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6];
+  const ticksY = H - 18;
+  const ticksSvg = ticks.map(t => {
+    const x = px(t);
+    const isZero = t === 0;
+    return `<line x1="${x}" x2="${x}" y1="2" y2="${ticksY}" stroke="rgba(255,255,255,${isZero ? 0.15 : 0.06})" stroke-width="${isZero ? 1.5 : 1}"/>
+      <text x="${x}" y="${H - 4}" font-size="10" fill="#606878" text-anchor="middle">${isZero ? '0' : (t > 0 ? '+' : '−') + Math.abs(t).toFixed(1)}</text>`;
+  }).join('');
+
+  const svg = `<svg viewBox="0 0 ${SVG_W} ${H}" width="100%" style="display:block">
+    ${rows}
+    ${ticksSvg}
+  </svg>`;
+
+  document.getElementById('chartCorrBars').innerHTML = svg;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 3: Day/Night Chart
+// ─────────────────────────────────────────────────────────────────────────────
+function buildDayNight() {
+  const dp = DATA.daily_pattern;
+  const colors = dp.hours.map(h => (h>=7&&h<=20) ? 'rgba(255,213,79,0.85)' : 'rgba(100,181,246,0.6)');
+
+  // Custom plugin for SEM error bars
+  const semPlugin = {
+    id: 'semBars',
+    afterDatasetsDraw(chart) {
+      const {ctx: c, scales} = chart;
+      if (!scales.y) return;
+      const meta = chart.getDatasetMeta(0);
+      c.save();
+      c.strokeStyle = 'rgba(255,255,255,0.65)';
+      c.lineWidth = 1.5;
+      meta.data.forEach((bar, i) => {
+        const sem = dp.sem[i];
+        if (!sem || sem === 0) return;
+        const yT = scales.y.getPixelForValue(dp.mean[i] + sem);
+        const yB = scales.y.getPixelForValue(dp.mean[i] - sem);
+        const cap = 3;
+        c.beginPath(); c.moveTo(bar.x, yT); c.lineTo(bar.x, yB); c.stroke();
+        c.beginPath(); c.moveTo(bar.x-cap, yT); c.lineTo(bar.x+cap, yT); c.stroke();
+        c.beginPath(); c.moveTo(bar.x-cap, yB); c.lineTo(bar.x+cap, yB); c.stroke();
+      });
+      c.restore();
+    }
+  };
+
+  const ctx = document.getElementById('chartDayNight').getContext('2d');
+  charts.dayNight = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: dp.hours.map(h=>`${h}h`),
+      datasets: [{
+        data: dp.mean,
+        backgroundColor: colors,
+        borderColor: colors,
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: i => ` ${i.raw.toFixed(1)} ±${dp.sem[i.dataIndex].toFixed(1)} ADC/h  (n=${dp.count[i.dataIndex]})`
+          }
+        }
+      },
+      scales: {
+        x: { title:{display:true,text:'Hour of day'} },
+        y: { title:{display:true,text:'Mean rate (ADC/h)'} }
+      }
+    },
+    plugins: [semPlugin]
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 3: Light Analysis
+// ─────────────────────────────────────────────────────────────────────────────
+function buildLightAnalysis() {
+  const la = DATA.light_analysis;
+
+  // Light bins (horizontal bar)
+  const binColors = ['rgba(80,80,100,0.8)','rgba(120,150,100,0.8)','rgba(200,180,80,0.85)','rgba(255,213,79,0.9)'];
+  const ctx1 = document.getElementById('chartLightBins').getContext('2d');
+  charts.lightBins = new Chart(ctx1, {
+    type:'bar',
+    data:{
+      labels: la.binned.labels.map(l=>l.replace(' (','\n(')),
+      datasets:[{
+        data: la.binned.mean,
+        backgroundColor: binColors,
+        borderColor: binColors,
+        borderWidth:1,
+      }]
+    },
+    options:{
+      indexAxis:'y', responsive:true,
+      plugins:{
+        tooltip:{callbacks:{label:i=>` ${i.raw.toFixed(1)} ±${la.binned.sem[i.dataIndex].toFixed(1)} ADC/h (n=${la.binned.count[i.dataIndex]})`}}
+      },
+      scales:{x:{title:{display:true,text:'Mean rate (ADC/h)'}},y:{ticks:{font:{size:10}}}}
+    }
+  });
+
+  // Response curve
+  const lc = la.response_curve;
+  const ctx2 = document.getElementById('chartLightCurve').getContext('2d');
+  charts.lightCurve = new Chart(ctx2, {
+    type:'line',
+    data:{datasets:[{
+      data: lc.map(d=>({x:d.light_mid,y:d.mean})),
+      borderColor:'var(--light)',backgroundColor:'rgba(255,213,79,0.1)',
+      fill:true,tension:0.3,
+      pointRadius:4,pointBackgroundColor:'var(--light)',pointBorderColor:'var(--light)',
+    }]},
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>` ${i.raw.y.toFixed(1)} ADC/h @ light=${i.raw.x}`}}},
+      scales:{
+        x:{type:'linear',title:{display:true,text:'Light intensity (ADC)'}},
+        y:{title:{display:true,text:'Mean rate (ADC/h)'},min:0}
+      }
+    }
+  });
+
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 3: Stomata Stress
+// ─────────────────────────────────────────────────────────────────────────────
+function buildStomataStress() {
+  const ss = DATA.stomata_stress;
+  const labels = ss.cycles.map(c=>`C${c.cycle_num}`);
+  const ctx = document.getElementById('chartStomataStress').getContext('2d');
+  charts.stomata = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Early phase',data:ss.cycles.map(c=>c.early_rate),backgroundColor:'rgba(79,195,247,0.8)',borderColor:'rgba(79,195,247,1)',borderWidth:1},
+        {label:'Late phase', data:ss.cycles.map(c=>c.late_rate), backgroundColor:'rgba(79,195,247,0.3)',borderColor:'rgba(79,195,247,0.6)',borderWidth:1},
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display:true,labels:{color:'#8888a4',boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:i=>` ${i.dataset.label}: ${i.raw.toFixed(1)} ADC/h`}}
+      },
+      scales:{
+        x:{},
+        y:{title:{display:true,text:'Rate (ADC/h)'},min:0}
+      }
+    },
+    plugins:[{
+      id:'avgLine',
+      afterDatasetsDraw(chart){
+        const {ctx:c,chartArea,scales}=chart;
+        if(!scales.y) return;
+        c.save();
+        const yAvg=scales.y.getPixelForValue(ss.avg_early_rate);
+        c.strokeStyle='rgba(255,255,255,0.4)';c.lineWidth=1.5;c.setLineDash([6,3]);
+        c.beginPath();c.moveTo(chartArea.left,yAvg);c.lineTo(chartArea.right,yAvg);c.stroke();
+        c.setLineDash([]);
+        c.restore();
+      }
+    }]
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+/// Section 4: Retention Curve
+// ─────────────────────────────────────────────────────────────────────────────
+function buildRetention() {
+  const rc = DATA.physical_drying.retention_curve.filter(d => d.soil_mid >= 375);
+  const ctx = document.getElementById('chartRetention').getContext('2d');
+  // Soil moisture color: wet=blue → dry=orange
+  const soilColor = (mid) => {
+    const t = Math.max(0, Math.min(1, (mid - 375) / (800 - 375)));
+    const r = Math.round(79 + (255-79)*t);
+    const g = Math.round(195 + (120-195)*t);
+    const b = Math.round(247 + (50-247)*t);
+    return `rgba(${r},${g},${b},0.85)`;
+  };
+  charts.retention = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rc.map(d => d.soil_mid),
+      datasets: [{
+        data: rc.map(d => d.mean),
+        backgroundColor: rc.map(d => soilColor(d.soil_mid)),
+        borderColor: rc.map(d => soilColor(d.soil_mid)),
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: { callbacks: { label: i => ` ${i.raw.toFixed(1)} ±${rc[i.dataIndex].sem.toFixed(1)} ADC/h (n=${rc[i.dataIndex].n})` } }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Soil moisture (ADC, higher = drier)' },
+             ticks: { callback: v => `${v} ADC` } },
+        y: { title: { display: true, text: 'Drying rate (ADC/h)' } }
+      }
+    },
+    plugins: [{
+      id: 'retentionErrBars',
+      afterDatasetsDraw(chart) {
+        const {ctx: c, scales} = chart;
+        if (!scales.y) return;
+        const meta = chart.getDatasetMeta(0);
+        c.save(); c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 1.5;
+        meta.data.forEach((bar, i) => {
+          const sem = rc[i].sem, mean = rc[i].mean;
+          const yT = scales.y.getPixelForValue(mean + sem);
+          const yB = scales.y.getPixelForValue(mean - sem);
+          c.beginPath(); c.moveTo(bar.x, yT); c.lineTo(bar.x, yB); c.stroke();
+          [yT, yB].forEach(y => { c.beginPath(); c.moveTo(bar.x-3, y); c.lineTo(bar.x+3, y); c.stroke(); });
+        });
+        c.restore();
+      }
+    }]
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 4: VPD Bins
+// ─────────────────────────────────────────────────────────────────────────────
+function buildVpdBins() {
+  const vb = DATA.vpd_binned;
+  const colors = ['rgba(100,181,246,0.7)','rgba(150,160,220,0.7)','rgba(200,130,220,0.7)','rgba(206,147,216,0.9)'];
+  const ctx = document.getElementById('chartVpdBins').getContext('2d');
+  charts.vpdBins = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: vb.labels,
+      datasets:[{
+        data: vb.mean,
+        backgroundColor: colors, borderColor:colors, borderWidth:1,
+      }]
+    },
+    options:{
+      indexAxis:'y', responsive:true,
+      plugins:{tooltip:{callbacks:{label:i=>` ${i.raw.toFixed(1)} ±${vb.sem[i.dataIndex].toFixed(1)} ADC/h (n=${vb.count[i.dataIndex]})`}}},
+      scales:{x:{title:{display:true,text:'Mean drying rate (ADC/h)'}},y:{}}
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 4: Heating Effect
+// ─────────────────────────────────────────────────────────────────────────────
+function buildHeating() {
+  const he = DATA.heating_effect;
+  document.getElementById('heating-n').textContent = he.n_normal + he.n_heating;
+  document.getElementById('heating-stats').innerHTML =
+    `Normal night: ${he.normal_mean.toFixed(1)} ADC/h (n=${he.n_normal}) &nbsp;·&nbsp; Heating night: ${he.heating_mean.toFixed(1)} ADC/h (n=${he.n_heating}) &nbsp;·&nbsp;
+     Welch t-test: t=${he.t.toFixed(2)}, p=${he.p.toFixed(3)} <strong style="color:var(--text-muted)">${pval(he.p)}</strong>
+     <span style="margin-left:8px;color:#666;font-style:italic">(n_heating too small for reliable inference)</span>`;
+
+  const ctx = document.getElementById('chartHeating').getContext('2d');
+  charts.heating = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:['Normal Night ','Night + Heating '],
+      datasets:[{
+        data:[he.normal_mean, he.heating_mean],
+        backgroundColor:['rgba(100,181,246,0.6)','rgba(239,83,80,0.8)'],
+        borderColor:['rgba(100,181,246,1)','rgba(239,83,80,1)'],
+        borderWidth:2,
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:i=>` ${i.raw.toFixed(1)} ADC/h`}}
+      },
+      scales:{
+        x:{grid:{display:false}},
+        y:{title:{display:true,text:'Drying rate (ADC/h)'},min:-2,max:12,
+           ticks:{callback:v=>v===0?'0':v}}
+      }
+    },
+    plugins:[{
+      id:'heatingValueLabels',
+      afterDatasetsDraw(chart){
+        const {ctx:c,scales}=chart;
+        if(!scales.y) return;
+        chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+          const val=chart.data.datasets[0].data[i];
+          c.save();
+          c.fillStyle=i===0?'rgba(100,181,246,1)':'rgba(239,83,80,1)';
+          c.font='700 14px Inter';c.textAlign='center';
+          const y=scales.y.getPixelForValue(val)+(val>=0?-8:16);
+          c.fillText(val.toFixed(1)+' ADC/h',bar.x,y);
+          c.restore();
+        });
+      }
+    }]
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 4: Drying Law
+// ─────────────────────────────────────────────────────────────────────────────
+function buildDryingLaw() {
+  return; // Skip execution as the canvas was removed by user request
+  const dc = DATA.drying_cycles;
+  const N = 60;
+  const xs = Array.from({length:N},(_,i)=>i/(N-1));
+
+  function interp(timeArr, soilArr) {
+    const out = [];
+    for (let i=0;i<N;i++) {
+      const t = i/(N-1);
+      let j=0;
+      while (j < timeArr.length-1 && timeArr[j+1] < t) j++;
+      if (j >= timeArr.length-1) { out.push(soilArr[soilArr.length-1]); continue; }
+      const frac = (timeArr[j+1]-timeArr[j]) > 0 ? (t-timeArr[j])/(timeArr[j+1]-timeArr[j]) : 0;
+      out.push(soilArr[j] + (soilArr[j+1]-soilArr[j])*frac);
+    }
+    return out;
+  }
+
+  // Compute mean curve across all cycles
+  const meanCurve = xs.map((x, j) => {
+    const vals = cycles.map(c => interp(c.normalized_time, c.normalized_soil)[j]);
+    return vals.reduce((a,b)=>a+b,0)/vals.length;
+  });
+
+  const datasets = cycles.map((c,i) => ({
+    data: xs.map((x,j)=>({x, y:interp(c.normalized_time,c.normalized_soil)[j]})),
+    borderColor: cycleBlue(i, cycles.length), borderWidth:1.2,
+    fill:false, tension:0.3, pointRadius:0,
+  }));
+  datasets.push({
+    label:'Mean',
+    data: xs.map((x,i)=>({x, y: meanCurve[i]})),
+    borderColor:'rgba(255,255,255,0.85)', borderWidth:3,
+    fill:false, tension:0.3, pointRadius:0,
+  });
+
+  const ctx1 = document.getElementById('chartDryingOverlay').getContext('2d');
+  charts.dryingOverlay = new Chart(ctx1, {
+    type:'line',
+    data:{datasets},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display:true,labels:{filter:(i,data)=>!data.datasets[i.datasetIndex].hidden && i.text==='Mean',color:'#eeeef2'}},
+      },
+      scales:{
+        x:{type:'linear',min:0,max:1,title:{display:true,text:'Normalized time'}},
+        y:{min:0,max:1.1,title:{display:true,text:'Normalized soil level'}}
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 5: Variance Decomposition
+// ─────────────────────────────────────────────────────────────────────────────
+function buildVariance() {
+  const pc  = DATA.point_correlations;
+  const bcc = DATA.between_cycle_correlations;
+
+  // Show 4 drivers ordered by cycle-level r, color-coded by type
+  const drivers = [
+    { label: 'VPD',            hourly: Math.abs(pc.vpd.r),             cycle: bcc.avg_vpd.r,   bio: false },
+    { label: 'Light',          hourly: Math.abs(pc.light_intensity.r), cycle: bcc.avg_light.r, bio: false },
+    { label: 'Temperature',    hourly: Math.abs(pc.temp_c.r),          cycle: bcc.avg_temp.r,  bio: false },
+    { label: 'Stomata Rhythm', hourly: Math.abs(pc.stomata.r),         cycle: null,             bio: true  },
+  ];
+
+  const BIO_SOLID  = 'rgba(129,199,132,0.85)';
+  const BIO_FAINT  = 'rgba(129,199,132,0.25)';
+  const PHYS_SOLID = 'rgba(206,147,216,0.85)';
+  const PHYS_FAINT = 'rgba(206,147,216,0.25)';
+
+  const hourlyColors = drivers.map(d => d.bio ? BIO_FAINT  : PHYS_FAINT);
+  const cycleColors  = drivers.map(d => d.bio ? BIO_SOLID  : PHYS_SOLID);
+
+  const signalPlugin = {
+    id: 'signalAnnot',
+    afterDraw(chart) {
+      const {ctx:c, chartArea, scales} = chart;
+      if (!scales.x || !scales.y) return;
+      const xThresh = scales.x.getPixelForValue(0.3);
+      c.save();
+      c.strokeStyle = 'rgba(255,255,255,0.1)';
+      c.lineWidth = 1; c.setLineDash([4,3]);
+      c.beginPath(); c.moveTo(xThresh, chartArea.top); c.lineTo(xThresh, chartArea.bottom); c.stroke();
+      c.setLineDash([]);
+      c.font = '600 10px Inter'; c.textAlign = 'center';
+      c.fillStyle = 'rgba(255,255,255,0.18)';
+      c.fillText('noise', (chartArea.left + xThresh)/2, chartArea.top + 12);
+      c.fillStyle = 'rgba(79,195,247,0.35)';
+      c.fillText('signal', (xThresh + chartArea.right)/2, chartArea.top + 12);
+      c.restore();
+    }
+  };
+
+  const ctx = document.getElementById('chartVariance').getContext('2d');
+  charts.variance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: drivers.map(d => d.label),
+      datasets: [
+        {
+          label: '30-min readings (r)',
+          data: drivers.map(d => +d.hourly.toFixed(3)),
+          backgroundColor: hourlyColors,
+          borderColor: hourlyColors.map(c => c.replace('0.25','0.5')),
+          borderWidth: 1,
+        },
+        {
+          label: 'Cycle-level average (r)',
+          data: drivers.map(d => d.cycle != null ? +d.cycle.toFixed(3) : null),
+          backgroundColor: cycleColors,
+          borderColor: cycleColors.map(c => c.replace('0.85','1')),
+          borderWidth: 1,
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: '#8888a4', boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: {
+          label: i => ` ${i.dataset.label}: r = ${i.raw != null ? i.raw.toFixed(3) : '—'}`
+        }}
+      },
+      scales: {
+        x: {
+          type: 'linear', min: 0, max: 0.65,
+          title: { display: true, text: 'Pearson r with soil drying rate' },
+          ticks: { callback: v => v.toFixed(2) }
+        },
+        y: { ticks: { color: '#eeeef2', font: { size: 12 } } }
+      }
+    },
+    plugins: [signalPlugin]
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 6: LOO chips + Feature importance + LOO scatter + Validation + Watering time
+// ─────────────────────────────────────────────────────────────────────────────
+function buildLooChips() {
+  const n = DATA.drying_cycles.length;
+  const container = document.getElementById('loo-chips-display');
+  if (!container) return;
+  for (let i = 0; i < n; i++) {
+    const chip = document.createElement('div');
+    chip.className = 'loo-chip loo-chip-all';
+    chip.textContent = `C${i+1}`;
+    chip.title = `C${i+1}: trained on ${n-1} cycles, tested on this one`;
+    chip.addEventListener('mouseenter', function() {
+      Array.from(container.children).forEach((c,j) => {
+        c.style.background = j===i ? 'rgba(255,112,67,0.2)' : 'rgba(79,195,247,0.12)';
+        c.style.borderColor = j===i ? 'rgba(255,112,67,0.4)' : 'rgba(79,195,247,0.3)';
+        c.style.color = j===i ? 'var(--pump)' : 'var(--soil)';
+      });
+    });
+    chip.addEventListener('mouseleave', function() {
+      Array.from(container.children).forEach(c => {
+        c.style.background = '';
+        c.style.borderColor = '';
+        c.style.color = '';
+      });
+    });
+    container.appendChild(chip);
+  }
+}
+
+function buildCoefficients() {
+  // Individual R² of each variance decomposition factor
+  const vd = DATA.variance_decomposition.steps;
+  const labels = vd.map(s => s.factor);
+  const vals   = vd.map(s => +(s.individual_r2 * 100).toFixed(2));
+  const colors = ['rgba(255,213,79,0.85)','rgba(206,147,216,0.85)','rgba(129,199,132,0.85)','rgba(239,83,80,0.85)','rgba(100,181,246,0.85)'];
+
+  const ctx = document.getElementById('chartCoefficients').getContext('2d');
+  charts.coefficients = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets:[{ label:'Individual R² (%)', data:vals, backgroundColor:colors, borderColor:colors.map(c=>c.replace('0.85','1')), borderWidth:1 }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:i=>` Individual R² = ${i.raw.toFixed(2)}%`}}
+      },
+      scales:{
+        x:{title:{display:true,text:'Individual R² (%)'},ticks:{callback:v=>`${v}%`}},
+        y:{ticks:{color:'#eeeef2',font:{size:11}}}
+      }
+    }
+  });
+}
+
+function buildActualVsPredicted() {
+  // LOO-CV scatter: all 11 cycles, each predicted by a model trained on remaining 10
+  const pm = DATA.prediction_model.cycle_model;
+  const pts = pm.validation_all;
+  const allActuals = pts.map(d=>d.actual);
+  const mn = Math.min(...allActuals) * 0.85;
+  const mx = Math.max(...allActuals) * 1.1;
+
+  const diagPlugin = {
+    id:'diagLine',
+    afterDatasetsDraw(chart){
+      const {ctx:c,scales}=chart;
+      if(!scales.x||!scales.y) return;
+      const x0=scales.x.getPixelForValue(mn), y0=scales.y.getPixelForValue(mn);
+      const x1=scales.x.getPixelForValue(mx), y1=scales.y.getPixelForValue(mx);
+      c.save();
+      c.strokeStyle='rgba(255,255,255,0.15)';c.lineWidth=1.5;c.setLineDash([5,4]);
+      c.beginPath();c.moveTo(x0,y0);c.lineTo(x1,y1);c.stroke();
+      c.setLineDash([]);
+      c.fillStyle='rgba(255,255,255,0.22)';c.font='500 10px Inter';c.textAlign='center';
+      c.fillText('perfect',(x0+x1)/2-15,(y0+y1)/2-7);
+      c.restore();
+    }
+  };
+
+  const ctx = document.getElementById('chartActualVsPred').getContext('2d');
+  charts.actualVsPred = new Chart(ctx, {
+    type: 'scatter',
+    data:{
+      datasets:[{
+        label:'LOO-CV (all 11 cycles)',
+        data: pts.map(d=>({x:d.actual, y:d.predicted, label:`C${d.cycle_num}`})),
+        backgroundColor:'rgba(79,195,247,0.75)', borderColor:'rgba(79,195,247,1)',
+        pointRadius:7, pointHoverRadius:9
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:i=>`C${pts[i.dataIndex].cycle_num}: actual=${i.raw.x.toFixed(2)}, pred=${i.raw.y.toFixed(2)} ADC/h`
+        }}
+      },
+      scales:{
+        x:{type:'linear',title:{display:true,text:'Actual rate (ADC/h)'},min:mn,max:mx},
+        y:{type:'linear',title:{display:true,text:'Predicted rate (ADC/h)'},min:mn,max:mx}
+      }
+    },
+    plugins:[diagPlugin]
+  });
+}
+
+function buildValidation() {
+  // Hidden chart (kept for compatibility) — actual validation is in buildWateringTime table
+  // Just create a minimal invisible chart
+  const ctx = document.getElementById('chartValidation').getContext('2d');
+  charts.validation = new Chart(ctx, {type:'bar',data:{labels:[],datasets:[]},options:{responsive:false}});
+}
+
+function buildWateringTime() {
+  const pm   = DATA.prediction_model.cycle_model;
+  const cycs = DATA.drying_cycles;
+  const av   = pm.validation_all;
+
+  const DRY = 800;
+  // Naive baseline = mean actual duration
+  const meanDur = cycs.reduce((s,c)=>s+c.duration_h,0)/cycs.length;
+
+  const rows = av.map(v => {
+    const cyc = cycs.find(c => c.cycle_num === v.cycle_num);
+    const soil_start = cyc ? cyc.soil_start : DRY;
+    const actual_h   = cyc ? cyc.duration_h : null;
+    const pred_h     = (DRY - soil_start) / v.predicted;
+    const err_h      = pred_h - actual_h;
+    const naive_err  = meanDur - actual_h;
+    return { cycle_num: v.cycle_num, actual_h, pred_h, err_h, naive_h: meanDur,
+             naive_err, actual_rate: v.actual, pred_rate: v.predicted };
+  });
+
+  const labels     = rows.map(r => `C${r.cycle_num}`);
+  const actuals_h  = rows.map(r => +r.actual_h.toFixed(1));
+  const preds_h    = rows.map(r => +Math.max(0, r.pred_h).toFixed(1));
+
+  // Metrics
+  const absErrs   = rows.map(r => Math.abs(r.err_h));
+  const medErr    = absErrs.slice().sort((a,b)=>a-b)[Math.floor(absErrs.length/2)];
+  const maeH      = absErrs.reduce((s,v)=>s+v,0)/absErrs.length;
+  const wtMape    = rows.reduce((s,r)=>s+Math.abs(r.err_h)/r.actual_h,0)/rows.length*100;
+  const naiveMape = rows.reduce((s,r)=>s+Math.abs(r.naive_err)/r.actual_h,0)/rows.length*100;
+  const modelWins = rows.filter(r => Math.abs(r.err_h) < Math.abs(r.naive_err)).length;
+
+  document.getElementById('metric-median-err').textContent = medErr.toFixed(1) + 'h';
+  const maeHEl = document.getElementById('metric-mae-h');
+  if (maeHEl) maeHEl.textContent = maeH.toFixed(1) + 'h';
+  const maeBigEl = document.getElementById('metric-mae-h-big');
+  if (maeBigEl) maeBigEl.textContent = maeH.toFixed(1) + 'h';
+  const mwtEl = document.getElementById('metric-mape-wt');
+  if (mwtEl) mwtEl.textContent = wtMape.toFixed(1) + '%';
+  const nmEl  = document.getElementById('metric-naive-mape');
+  if (nmEl)  nmEl.textContent  = naiveMape.toFixed(1) + '%';
+  const winsEl = document.getElementById('wt-wins-label');
+  if (winsEl) winsEl.textContent = `${modelWins} of ${rows.length}`;
+  const naiveLbl = document.getElementById('naive-mean-label');
+  if (naiveLbl) naiveLbl.textContent = meanDur.toFixed(0);
+
+  // Chart: actual + model predicted + naive baseline
+  const ctx = document.getElementById('chartWateringTime').getContext('2d');
+  charts.wateringTime = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        { label:'Actual (h)', data:actuals_h,
+          backgroundColor:'rgba(79,195,247,0.7)', borderColor:'rgba(79,195,247,1)', borderWidth:1 },
+        { label:'Model pred (h)', data:preds_h,
+          backgroundColor:'rgba(129,199,132,0.65)', borderColor:'rgba(129,199,132,1)', borderWidth:1 },
+        { label:`Naive (${meanDur.toFixed(0)}h)`, data:labels.map(()=>+meanDur.toFixed(1)),
+          type:'line', borderColor:'rgba(255,213,79,0.6)', borderWidth:1.5, borderDash:[5,4],
+          pointRadius:0, fill:false, backgroundColor:'transparent' }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,labels:{color:'#8888a4',boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:i=>` ${i.dataset.label}: ${i.raw}h`}}
+      },
+      scales:{
+        x:{},
+        y:{title:{display:true,text:'Hours until dry threshold'},min:0}
+      }
+    }
+  });
+
+  // Table
+  const tbody = document.getElementById('validation-tbody');
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const errColor = Math.abs(r.err_h) > 20 ? 'var(--pump)' : Math.abs(r.err_h) > 10 ? 'var(--light)' : 'var(--text-secondary)';
+    const modelWinsRow = Math.abs(r.err_h) < Math.abs(r.naive_err);
+    tr.innerHTML = `
+      <td style="font-weight:600">C${r.cycle_num}</td>
+      <td style="color:var(--soil)">${r.actual_h.toFixed(1)}</td>
+      <td style="color:var(--bio)">${Math.max(0,r.pred_h).toFixed(1)}</td>
+      <td style="color:var(--text-muted)">${meanDur.toFixed(0)}</td>
+      <td style="color:${errColor}">${r.err_h>=0?'+':''}${r.err_h.toFixed(1)}h</td>
+      <td style="font-size:11px;font-weight:700;${modelWinsRow?'color:var(--bio)':'color:var(--text-muted)'}">${modelWinsRow?'MODEL ':'NAIVE '}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Nav scroll-spy
+// ─────────────────────────────────────────────────────────────────────────────
+function setupNav() {
+  const sections = ['s1','s2','s3','s4','s5','s6'];
+  const links = document.querySelectorAll('.nav-link');
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if (e.isIntersecting) {
+        links.forEach(l=>l.classList.remove('active'));
+        const idx = sections.indexOf(e.target.id);
+        if (idx>=0) links[idx].classList.add('active');
+      }
+    });
+  },{threshold:0.3,rootMargin:'-52px 0px 0px 0px'});
+  sections.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) obs.observe(el);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// View switcher (Dashboard ↔ Customer App)
+// ─────────────────────────────────────────────────────────────────────────────
+function showView(tab) {
+  const isDash = tab === 'dashboard';
+  // Toggle sections
+  document.querySelectorAll('section.section').forEach(s => s.style.display = isDash ? '' : 'none');
+  document.querySelectorAll('footer').forEach(f => f.style.display = isDash ? '' : 'none');
+  document.getElementById('app-view').style.display = isDash ? 'none' : 'block';
+  // Nav links visibility
+  ['nav-sep-main','nav-s1','nav-s2','nav-s3','nav-s4','nav-s5','nav-s6'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isDash ? '' : 'none';
+  });
+  // Tab button states
+  document.getElementById('vtab-dashboard').classList.toggle('active', isDash);
+  document.getElementById('vtab-app').classList.toggle('active', !isDash);
+  if (!isDash) buildAppView();
+}
+
+function showAppTab(tab) {
+  const isHome = tab === 'home';
+  document.getElementById('app-home').style.display = isHome ? 'block' : 'none';
+  document.getElementById('app-insights-page').style.display = isHome ? 'none' : 'block';
+  document.getElementById('itab-home').classList.toggle('active', isHome);
+  document.getElementById('itab-insights').classList.toggle('active', !isHome);
+  if (!isHome) buildInsights();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// App: Home page
+// ─────────────────────────────────────────────────────────────────────────────
+let appBuilt = false;
+function buildAppView() {
+  if (appBuilt) return;
+  appBuilt = true;
+
+  const ts  = DATA.timeseries;
+  const dc  = DATA.drying_cycles;
+  const DRY = 800;
+
+  // ── Find last pump event from real timeseries ──
+  let lastPumpIdx = -1;
+  for (let i = ts.length - 1; i >= 0; i--) {
+    if (ts[i].pump_event === 1) { lastPumpIdx = i; break; }
+  }
+  const lastPump   = ts[lastPumpIdx];
+  const lastPumpTs = new Date(lastPump.ts);
+
+  // ── Current cycle: all readings after last pump ──
+  const currCycleReadings = ts.slice(lastPumpIdx + 1).filter(t => t.soil2 > 0);
+  const soilAfterPump = Math.min(...currCycleReadings.slice(0, 5).map(t => t.soil2));
+  const lastReading   = currCycleReadings[currCycleReadings.length - 1];
+  const lastReadTs    = new Date(lastReading.ts);
+
+  // ── Real elapsed hours + measured rate from timeseries ──
+  const hoursElapsed = (lastReadTs - lastPumpTs) / 3600000;
+  const soilNow      = lastReading.soil2;
+  const measuredRate = Math.max((soilNow - soilAfterPump) / hoursElapsed, 0.5);
+
+  // ── Countdown & progress ──
+  const progress  = Math.min((soilNow - soilAfterPump) / (DRY - soilAfterPump), 1);
+  const hoursLeft = Math.max((DRY - soilNow) / measuredRate, 0);
+  const hLeft     = Math.floor(hoursLeft);
+  const mLeft     = Math.round((hoursLeft - hLeft) * 60);
+
+  // ── Current cycle environment averages (real timeseries fields) ──
+  const avgTemp  = currCycleReadings.reduce((s,t)=>s+t.temp_c,0)         / currCycleReadings.length;
+  const avgHum   = currCycleReadings.reduce((s,t)=>s+t.hum_pct,0)        / currCycleReadings.length;
+  const avgLight = currCycleReadings.reduce((s,t)=>s+t.light_intensity,0) / currCycleReadings.length;
+  const avgVpd   = currCycleReadings.reduce((s,t)=>s+t.vpd,0)             / currCycleReadings.length;
+
+  // ── Timestamps for display ──
+  const cycleNum   = dc.length + 1; // cycle 12 in progress
+  const fmtDate = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  const fmtTime = d => d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const lastWateredLabel = `Last watered ${fmtDate(lastPumpTs)} at ${fmtTime(lastPumpTs)} · ${hoursElapsed.toFixed(0)}h ago`;
+  const lastUpdLabel     = `Last updated: ${fmtDate(lastReadTs)}, ${fmtTime(lastReadTs)} · Cycle ${cycleNum} in progress`;
+
+  // ── Status ──
+  const status      = hoursLeft > 24 ? 'good' : hoursLeft > 8 ? 'warn' : 'crit';
+  const statusText  = hoursLeft > 24 ? 'All Good' : hoursLeft > 8 ? 'Water Tomorrow' : 'Water Now!';
+  const accentColor = status === 'good' ? '#30d158' : status === 'warn' ? '#ff9f0a' : '#ff453a';
+
+  // Hero
+  const hero = document.getElementById('app-hero');
+  hero.className = `app-hero ${status}`;
+  document.getElementById('hero-glow').className = `status-glow ${status}`;
+  document.getElementById('hero-status-text').textContent = statusText;
+  document.getElementById('hero-last-watered').textContent = lastWateredLabel;
+  document.getElementById('cdown-h').textContent = hLeft;
+  document.getElementById('cdown-h').style.color = accentColor;
+  document.getElementById('cdown-m').textContent = mLeft < 10 ? '0'+mLeft : mLeft;
+  document.getElementById('cdown-m').style.color = accentColor;
+
+  // Last-updated context line (insert below countdown if element exists)
+  const ctxEl = document.getElementById('hero-last-updated');
+  if (ctxEl) ctxEl.textContent = lastUpdLabel;
+
+  // Soil donut + bar
+  const pct = Math.round(progress * 100);
+  document.getElementById('donut-pct').textContent = pct + '%';
+  const circumference = 2 * Math.PI * 36; // ≈ 226
+  document.getElementById('donut-arc').setAttribute('stroke-dashoffset', (circumference * (1 - progress)).toFixed(1));
+  document.getElementById('donut-arc').setAttribute('stroke', accentColor);
+  document.getElementById('soil-pct-label').textContent = `${pct}% toward dry threshold`;
+  const fill = document.getElementById('soil-bar-fill');
+  fill.style.width = pct + '%';
+  fill.className = `soil-fill ${status}`;
+
+  // Alerts — computed from real current cycle conditions vs historical thresholds
+  const alerts = [];
+  const temps  = dc.map(c => c.avg_temp), vpds = dc.map(c => c.avg_vpd), lights = dc.map(c => c.avg_light);
+  const maxTemp = Math.max(...temps), maxVpd = Math.max(...vpds), maxLight = Math.max(...lights);
+  const avgDur = dc.reduce((s,c)=>s+c.duration_h,0)/dc.length;
+
+  if (avgLight > maxLight * 0.75)
+    alerts.push({icon:'️',color:'rgba(255,214,10,.15)',border:'rgba(255,214,10,.3)',
+      title:'High light intensity right now',
+      text:`Light is averaging ${avgLight.toFixed(0)} ADC this cycle, among the highest recorded. Consider moving the plant slightly back from the window.`});
+  if (avgVpd > maxVpd * 0.75)
+    alerts.push({icon:'',color:'rgba(100,181,246,.12)',border:'rgba(100,181,246,.3)',
+      title:'Air is unusually dry',
+      text:`VPD is ${avgVpd.toFixed(2)} kPa this cycle. High vapour pressure difference dries soil faster. A humidifier nearby would help.`});
+  if (avgTemp > maxTemp * 0.85)
+    alerts.push({icon:'',color:'rgba(255,100,80,.12)',border:'rgba(255,100,80,.3)',
+      title:'Above-average temperature',
+      text:`Room temperature is averaging ${avgTemp.toFixed(1)}°C. Warmth accelerates evaporation, so your plant may need water earlier than usual.`});
+  if (progress > 0.7)
+    alerts.push({icon:'',color:'rgba(48,209,88,.1)',border:'rgba(48,209,88,.25)',
+      title:'Plant is conserving water',
+      text:'Soil is getting dry. Your plant has begun closing its stomata to slow water loss. Water soon to avoid stress.'});
+  const projectedDur = hoursElapsed + hoursLeft;
+  if (projectedDur < avgDur * 0.8)
+    alerts.push({icon:'',color:'rgba(255,159,10,.12)',border:'rgba(255,159,10,.3)',
+      title:'Unusually fast drying cycle',
+      text:`At current rate this cycle will finish in about ${projectedDur.toFixed(0)}h, roughly ${Math.round((1-projectedDur/avgDur)*100)}% faster than average. Check light and temperature.`});
+
+  const alertContainer = document.getElementById('app-alerts');
+  (alerts.length ? alerts : [{icon:'',color:'rgba(48,209,88,.1)',border:'rgba(48,209,88,.25)',
+    title:'No action needed',text:'Conditions are normal. Your plant is happy. Check back in a few hours.'}])
+    .slice(0,3).forEach(a => {
+      const div = document.createElement('div');
+      div.className = 'app-alert';
+      div.style.borderColor = a.border;
+      div.innerHTML = `
+        <div><div style="font-size:13px;font-weight:700;color:#dde3ef;margin-bottom:3px">${a.title}</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">${a.text}</div></div>`;
+      alertContainer.appendChild(div);
+    });
+
+  // Factor chips — use real current cycle measurements
+  const tempRange  = [Math.min(...temps), maxTemp];
+  const vpdRange   = [Math.min(...vpds),  maxVpd];
+  const lightRange = [Math.min(...lights), maxLight];
+  const norm = (v, r) => Math.min(Math.max((v - r[0]) / (r[1] - r[0]), 0), 1);
+
+  const factors = [
+    { icon:'️', label:'Light intensity',
+      level: norm(avgLight, lightRange), color:'#ffd54f',
+      tag: avgLight > maxLight*0.75 ? `${avgLight.toFixed(0)} ADC: very high` : avgLight > maxLight*0.4 ? `${avgLight.toFixed(0)} ADC: moderate` : `${avgLight.toFixed(0)} ADC: low` },
+    { icon:'', label:'Vapour pressure deficit',
+      level: norm(avgVpd, vpdRange), color:'#64b5f6',
+      tag: avgVpd > maxVpd*0.7 ? `${avgVpd.toFixed(2)} kPa: high, dry air` : `${avgVpd.toFixed(2)} kPa: normal` },
+    { icon:'', label:'Temperature',
+      level: norm(avgTemp, tempRange), color:'#ef5350',
+      tag: avgTemp > maxTemp*0.8 ? `${avgTemp.toFixed(1)}°C: warm` : `${avgTemp.toFixed(1)}°C: normal` },
+    { icon:'', label:'Relative humidity',
+      level: 1 - norm(avgHum, [Math.min(...dc.map(c=>c.avg_hum)), Math.max(...dc.map(c=>c.avg_hum))]),
+      color:'#81c784',
+      tag: avgHum < 50 ? `${avgHum.toFixed(0)}%: low, plant stressed` : `${avgHum.toFixed(0)}%: ok` },
+    { icon:'', label:'Soil dryness',
+      level: progress, color: progress > 0.7 ? '#ff9f0a' : '#4fc3f7',
+      tag: `${pct}%: ${progress > 0.7 ? 'plant conserving water' : 'in normal range'}` },
+  ];
+
+  const factorContainer = document.getElementById('app-factors');
+  factors.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'factor-item';
+    div.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+          <span style="font-size:12px;font-weight:600;color:#dde3ef">${f.label}</span>
+          <span style="font-size:11px;color:var(--text-muted)">${f.tag}</span>
+        </div>
+        <div class="factor-bar-track">
+          <div class="factor-bar-fill" style="width:${(f.level*100).toFixed(0)}%;background:${f.color}"></div>
+        </div>
+      </div>`;
+    factorContainer.appendChild(div);
+  });
+
+  // History
+  const histContainer = document.getElementById('app-history');
+  const avgDurAll = dc.reduce((s,c)=>s+c.duration_h,0)/dc.length;
+  const dotColors = ['#30d158','#ff9f0a','#ff453a'];
+  document.getElementById('history-avg-label').textContent = `Avg cycle: ${avgDurAll.toFixed(0)}h (≈${(avgDurAll/24).toFixed(1)} days)`;
+
+  [...dc].reverse().slice(0,6).forEach(c => {
+    const ratio = c.duration_h / avgDurAll;
+    const tag   = ratio < 0.8 ? {t:' Fast',col:'#ff9f0a'} : ratio > 1.2 ? {t:' Slow',col:'#64b5f6'} : {t:' Normal',col:'#30d158'};
+    const date  = new Date(c.start_ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    div.innerHTML = `
+      <div class="h-dot" style="background:${tag.col}"></div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:13px;font-weight:600;color:#dde3ef">Cycle ${c.cycle_num}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--text-secondary)">${c.duration_h.toFixed(1)}h</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px">
+          <span style="font-size:11px;color:var(--text-muted)">${date}</span>
+          <span style="font-size:11px;font-weight:600;color:${tag.col}">${tag.t}</span>
+        </div>
+      </div>`;
+    histContainer.appendChild(div);
+  });
+
+  // This cycle vs average — use real measured rate vs historical average
+  const avgRateAll = dc.reduce((s,c)=>s+c.rate_adc_h,0)/dc.length;
+  const rateVsAvg  = (measuredRate - avgRateAll) / avgRateAll * 100;
+  const projDur    = hoursElapsed + hoursLeft;
+  const projVsAvg  = (projDur - avgDurAll) / avgDurAll * 100;
+  document.getElementById('cycle-vs-avg').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--text-muted)">Projected duration</span>
+        <span style="font-size:14px;font-weight:700;color:${projDur<avgDurAll?'#ff9f0a':'#30d158'}">~${projDur.toFixed(0)}h <span style="font-size:11px;opacity:.7">(avg ${avgDurAll.toFixed(0)}h)</span></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--text-muted)">Measured drying rate</span>
+        <span style="font-size:14px;font-weight:700;color:${rateVsAvg>15?'#ff9f0a':'var(--text-secondary)'}">${measuredRate.toFixed(1)} ADC/h <span style="font-size:11px;opacity:.7">${rateVsAvg>0?'+':''}${rateVsAvg.toFixed(0)}% vs avg</span></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--text-muted)">Hours into cycle</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text-secondary)">${hoursElapsed.toFixed(1)}h elapsed</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);padding-top:4px;border-top:1px solid rgba(255,255,255,.05);line-height:1.6">
+        ${Math.abs(projVsAvg)>15 ? `On track to be <strong style="color:#dde3ef">${Math.abs(projVsAvg).toFixed(0)}% ${projVsAvg<0?'shorter':'longer'} than usual</strong>. ${projVsAvg<0?'High light or temperature this week.':'Cooler, more humid conditions than average.'}` : 'Cycle length is within normal range. Typical conditions.'}
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// App: Insights page
+// ─────────────────────────────────────────────────────────────────────────────
+let insightsBuilt = false;
+function buildInsights() {
+  if (insightsBuilt) return;
+  insightsBuilt = true;
+
+  const ts2 = DATA.timeseries;
+  const dc  = DATA.drying_cycles;
+  const pm  = DATA.prediction_model;
+  const cm  = pm.cycle_model;
+  const hm  = pm.hourly_model;
+  const avgDur = dc.reduce((s,c)=>s+c.duration_h,0)/dc.length;
+
+  // ── Use real current cycle readings for contributions ──
+  let pumpIdx2 = -1;
+  for (let i = ts2.length-1; i >= 0; i--) { if (ts2[i].pump_event === 1) { pumpIdx2 = i; break; } }
+  const currRdgs2 = ts2.slice(pumpIdx2 + 1).filter(t => t.soil2 > 0);
+  const cur_temp  = currRdgs2.reduce((s,t)=>s+t.temp_c,0)         / currRdgs2.length;
+  const cur_light = currRdgs2.reduce((s,t)=>s+t.light_intensity,0) / currRdgs2.length;
+  const cur_vpd   = currRdgs2.reduce((s,t)=>s+t.vpd,0)             / currRdgs2.length;
+  const cycleNum2 = dc.length + 1;
+
+  // ── Feature contributions (cycle model: intercept + light + vpd + temp) ──
+  const cc = cm.coefficients;
+  const contribs = [
+    { label:'️ Light', val: Math.abs(cc.light * cur_light), color:'#ffd54f' },
+    { label:' VPD',   val: Math.abs(cc.vpd   * cur_vpd),   color:'#64b5f6' },
+    { label:' Temp',  val: Math.abs(cc.temp  * cur_temp),   color:'#ef5350' },
+    { label:' Stomata×Light', val: Math.abs(hm.coefficients.stomata_x_light * cur_light/4095), color:'#81c784'},
+  ];
+  const contribTotal = contribs.reduce((s,c)=>s+c.val,0);
+  const contribEl = document.getElementById('contrib-bars');
+  contribs.sort((a,b)=>b.val-a.val).forEach(c => {
+    const pct = Math.round(c.val/contribTotal*100);
+    const div = document.createElement('div');
+    div.className = 'contrib-row';
+    div.innerHTML = `
+      <div class="contrib-label">${c.label}</div>
+      <div class="contrib-track"><div class="contrib-fill" style="width:${pct}%;background:${c.color}"></div></div>
+      <div class="contrib-pct" style="color:${c.color}">${pct}%</div>`;
+    contribEl.appendChild(div);
+  });
+
+  // ── Cycle duration bars ──
+  const maxDur = Math.max(...dc.map(c=>c.duration_h));
+  const cycBarsEl = document.getElementById('cycle-bars');
+  dc.forEach(c => {
+    const pct = Math.round(c.duration_h/maxDur*100);
+    const ratio = c.duration_h/avgDur;
+    const col = ratio < 0.8 ? '#ff9f0a' : ratio > 1.2 ? '#64b5f6' : '#30d158';
+    const div = document.createElement('div');
+    div.className = 'cycle-bar-item';
+    div.innerHTML = `
+      <div class="cycle-bar-label">C${c.cycle_num}</div>
+      <div class="cycle-bar-track">
+        <div class="cycle-bar-fill" style="width:${pct}%;background:${col}40;border-left:3px solid ${col}">
+          ${c.duration_h.toFixed(0)}h
+        </div>
+      </div>`;
+    cycBarsEl.appendChild(div);
+  });
+
+  // ── Key insights ──
+  const fastCyc = dc.reduce((a,b)=>a.duration_h<b.duration_h?a:b);
+  const slowCyc = dc.reduce((a,b)=>a.duration_h>b.duration_h?a:b);
+  const speedUpCycs = dc.slice(-3);
+  const recentAvg = speedUpCycs.reduce((s,c)=>s+c.duration_h,0)/speedUpCycs.length;
+  const earlyAvg  = dc.slice(0,3).reduce((s,c)=>s+c.duration_h,0)/3;
+  const trend = recentAvg < earlyAvg ? 'getting shorter' : 'getting longer';
+
+  const insights = [
+    { icon:'', color:'#ff9f0a',
+      title:`Fastest cycle: ${fastCyc.duration_h.toFixed(0)}h (C${fastCyc.cycle_num})`,
+      text:`Avg temp ${fastCyc.avg_temp.toFixed(1)}°C · VPD ${fastCyc.avg_vpd.toFixed(2)} kPa. Hot and dry conditions drove rapid drying.` },
+    { icon:'', color:'#64b5f6',
+      title:`Slowest cycle: ${slowCyc.duration_h.toFixed(0)}h (C${slowCyc.cycle_num})`,
+      text:`Avg temp ${slowCyc.avg_temp.toFixed(1)}°C · VPD ${slowCyc.avg_vpd.toFixed(2)} kPa. Cool and humid conditions stretched the interval.` },
+    { icon:'', color: recentAvg < earlyAvg ? '#ff9f0a' : '#30d158',
+      title:`Cycles are ${trend}`,
+      text:`Recent average ${recentAvg.toFixed(0)}h vs early average ${earlyAvg.toFixed(0)}h. ${recentAvg < earlyAvg ? 'Likely warming weather or more sun recently.' : 'Conditions have been cooler or more humid lately.'}` },
+    { icon:'', color:'#ce93d8',
+      title:`Model predicts to within ${(avgDur * 0.119).toFixed(0)}h on average`,
+      text:`Out of ${dc.length} completed cycles tested with LOO cross-validation, the model beat a fixed schedule on 7/11. Cycle ${cycleNum2} is currently in progress.` },
+  ];
+
+  const insightsEl = document.getElementById('key-insights');
+  insights.forEach(ins => {
+    const div = document.createElement('div');
+    div.style.cssText = `display:flex;gap:12px;align-items:flex-start;padding:12px;background:rgba(255,255,255,.03);border-radius:10px`;
+    div.innerHTML = `
+      <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${ins.icon}</div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:${ins.color};margin-bottom:3px">${ins.title}</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">${ins.text}</div>
+      </div>`;
+    insightsEl.appendChild(div);
+  });
+
+  // ── Prediction accuracy last 5 cycles ──
+  const DRY = 800;
+  const recent5 = cm.validation_all.slice(-5);
+  const accEl = document.getElementById('accuracy-list');
+  recent5.reverse().forEach(v => {
+    const cyc = dc.find(c=>c.cycle_num===v.cycle_num);
+    if (!cyc) return;
+    const pred_h = (DRY - cyc.soil_start) / v.predicted;
+    const err_h  = pred_h - cyc.duration_h;
+    const ok = Math.abs(err_h) < 10;
+    const div = document.createElement('div');
+    div.className = 'accuracy-row';
+    div.innerHTML = `
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#dde3ef">Cycle ${v.cycle_num}</div>
+        <div style="font-size:11px;color:var(--text-muted)">Actual ${cyc.duration_h.toFixed(0)}h · Predicted ${pred_h.toFixed(0)}h</div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:${ok?'#30d158':Math.abs(err_h)<20?'#ff9f0a':'#ff453a'}">
+        ${err_h>=0?'+':''}${err_h.toFixed(0)}h
+      </div>`;
+    accEl.appendChild(div);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────────────────────
+main();
+</script>
+</body>
+</html>
