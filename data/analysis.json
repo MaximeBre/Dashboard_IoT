@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-03-24T17:59:15.384933",
+    "generated_at": "2026-03-24T19:37:43.431581",
     "n_points": 1514,
     "date_range": [
       "2026-02-13",
@@ -23970,7 +23970,7 @@
   "scenarios": [
     {
       "name": "Sunny March Day",
-      "icon": "\u2600\ufe0f",
+      "icon": "sunny",
       "avg_light": 1800,
       "avg_vpd": 1.6,
       "avg_temp": 22,
@@ -24133,7 +24133,7 @@
     },
     {
       "name": "Cloudy Day",
-      "icon": "\u26c5",
+      "icon": "cloudy",
       "avg_light": 400,
       "avg_vpd": 0.9,
       "avg_temp": 18,
@@ -24684,7 +24684,7 @@
     },
     {
       "name": "Winter Day",
-      "icon": "\ud83c\udf27\ufe0f",
+      "icon": "winter",
       "avg_light": 150,
       "avg_vpd": 0.6,
       "avg_temp": 15,
@@ -25507,7 +25507,7 @@
     },
     {
       "name": "Hot Summer Day",
-      "icon": "\ud83d\udd25",
+      "icon": "hot",
       "avg_light": 2500,
       "avg_vpd": 2.0,
       "avg_temp": 28,

@@ -477,10 +477,10 @@ SOIL_WET = 280
 
 scenarios = []
 for name, icon, avg_light, avg_vpd, avg_temp in [
-    ('Sunny March Day', '☀️', 1800, 1.6, 22),
-    ('Cloudy Day',      '⛅', 400,  0.9, 18),
-    ('Winter Day',      '🌧️', 150,  0.6, 15),
-    ('Hot Summer Day',  '🔥', 2500, 2.0, 28),
+    ('Sunny March Day', 'sunny',  1800, 1.6, 22),
+    ('Cloudy Day',      'cloudy', 400,  0.9, 18),
+    ('Winter Day',      'winter', 150,  0.6, 15),
+    ('Hot Summer Day',  'hot',    2500, 2.0, 28),
 ]:
     c = hourly_coeffs
     trajectory = []
